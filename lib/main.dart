@@ -5,10 +5,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:math';
 
-// --- 1. STATE MANAGEMENT & DATA MODELS ---
+// --- 1. GAMIFICATION ENGINE & MODELS ---
 
-// Enums pro víru a typ uživatele
 enum FaithType { christian, muslim, atheist, spiritual, universal }
+enum ActionType { lightCandle, deepPrayer, dailyLogin, share }
 
 class UserProfile {
   String nickname;
@@ -16,7 +16,8 @@ class UserProfile {
   bool isIncognito;
   int auraPoints;
   int treeLevel;
-  double currentStressLevel; // 1-10 (Research data)
+  int dayStreak; // Sádhaná - konzistence
+  double currentStressLevel;
 
   UserProfile({
     this.nickname = "Poutník",
@@ -24,35 +25,45 @@ class UserProfile {
     this.isIncognito = false,
     this.auraPoints = 0,
     this.treeLevel = 1,
+    this.dayStreak = 1,
     this.currentStressLevel = 5.0,
   });
+
+  // Výpočet titulu podle levelu (Gamifikace dokument str. 1)
+  String get Title {
+    if (treeLevel < 3) return "Poutník";
+    if (treeLevel < 7) return "Hledač";
+    if (treeLevel < 15) return "Strážce";
+    if (treeLevel < 30) return "Světlonoš";
+    return "Avatar";
+  }
 }
 
-// Hlavní Provider pro správu stavu aplikace
 class AppState extends ChangeNotifier {
   UserProfile user = UserProfile();
   List<PrayerCardModel> prayers = [];
+  
+  // Gamifikační tabulka odměn (podle dokumentu)
+  final Map<ActionType, int> _pointsTable = {
+    ActionType.lightCandle: 5,  // Zapálení Díji
+    ActionType.deepPrayer: 20,  // Bhakti / Hluboká podpora
+    ActionType.dailyLogin: 10,  // Denní Prárthaná
+    ActionType.share: 50,       // Evangelizace / Sdílení
+  };
 
-  // Nastavení "Skinu" aplikace podle víry
+  // --- THEME & SKINNING ---
   ThemeData get currentTheme {
     Color primaryColor;
     switch (user.faith) {
-      case FaithType.christian:
-        primaryColor = Colors.amber;
-        break; // Gold
-      case FaithType.muslim:
-        primaryColor = Colors.green;
-        break; // Green
-      case FaithType.atheist:
-        primaryColor = Colors.teal;
-        break; // Science Teal
-      default:
-        primaryColor = Colors.purpleAccent; // Spiritual
+      case FaithType.christian: primaryColor = Colors.amber; break; 
+      case FaithType.muslim: primaryColor = Colors.green; break;
+      case FaithType.atheist: primaryColor = Colors.teal; break;
+      default: primaryColor = Colors.purpleAccent;
     }
 
     return ThemeData.dark().copyWith(
       primaryColor: primaryColor,
-      scaffoldBackgroundColor: const Color(0xFF0A0A12), // Deep space dark
+      scaffoldBackgroundColor: const Color(0xFF0A0A12),
       colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: Colors.white70,
@@ -62,78 +73,59 @@ class AppState extends ChangeNotifier {
     );
   }
 
-  // Terminologie podle víry (Dynamic Wording)
-  String get termPrayer {
+  String get termCurrency {
     switch (user.faith) {
-      case FaithType.atheist:
-        return "Myšlenka";
-      case FaithType.muslim:
-        return "Dua";
-      case FaithType.christian:
-        return "Modlitba";
-      default:
-        return "Intence";
+      case FaithType.christian: return "Milost";
+      case FaithType.muslim: return "Hasanat";
+      case FaithType.atheist: return "Kredity";
+      default: return "Aura";
     }
   }
 
-  String get termAction {
-    switch (user.faith) {
-      case FaithType.atheist:
-        return "Vyslat sílu";
-      default:
-        return "Zapálit svíčku";
-    }
-  }
+  // --- LOGIC ---
 
-  // Mock Data Generator
   void generateMockData() {
     prayers = [
-      PrayerCardModel(
-          author: "Maria, BR",
-          content: "Prosím za uzdravení mé matky. Čekají nás těžké testy.",
-          supporters: 124,
-          countryCode: "BR"),
-      PrayerCardModel(
-          author: "Unknown Pilgrim",
-          content: "Mám strach z budoucnosti. Potřebuji cítit klid.",
-          supporters: 89,
-          countryCode: "US",
-          isAnonymous: true),
-      PrayerCardModel(
-          author: "David, CZ",
-          content: "Díky za sílu zvládnout dnešní den. Cítím vděčnost.",
-          supporters: 256,
-          countryCode: "CZ",
-          type: PrayerType.gratitude),
+      PrayerCardModel(author: "Maria, BR", content: "Prosím za uzdravení. Čekají nás testy.", supporters: 124, countryCode: "BR"),
+      PrayerCardModel(author: "Unknown", content: "Mám strach z budoucnosti.", supporters: 89, countryCode: "US", isAnonymous: true),
+      PrayerCardModel(author: "David, CZ", content: "Díky za sílu zvládnout dnešní den.", supporters: 256, countryCode: "CZ", type: PrayerType.gratitude),
     ];
     notifyListeners();
   }
 
-  // Akce: Zapálení svíčky (Gamifikace)
-  void lightCandle(int index) {
-    prayers[index].supporters++;
-    prayers[index].isSupportedByMe = true;
-    user.auraPoints += 5;
-    _checkTreeGrowth();
-    notifyListeners();
-    HapticFeedback.mediumImpact(); // Fyzická odezva
-  }
-
-  // Logika růstu stromu
-  void _checkTreeGrowth() {
-    if (user.auraPoints > user.treeLevel * 50) {
-      user.treeLevel++;
+  // CORE GAMIFICATION FUNCTION
+  void performAction(ActionType action, {int? cardIndex}) {
+    int points = _pointsTable[action] ?? 0;
+    
+    // 1. Přičíst body
+    user.auraPoints += points;
+    
+    // 2. Aktualizovat modlitbu (pokud se vztahuje ke kartě)
+    if (cardIndex != null) {
+      prayers[cardIndex].supporters++;
+      prayers[cardIndex].isSupportedByMe = true;
     }
+
+    // 3. Kontrola Level Up (Exponenciální křivka)
+    // Level = sqrt(Points / 50) ... zjednodušená logika
+    int newLevel = (sqrt(user.auraPoints) / 2).floor();
+    if (newLevel < 1) newLevel = 1;
+    
+    if (newLevel > user.treeLevel) {
+      user.treeLevel = newLevel;
+      // Tady by se spustila "Level Up" animace
+    }
+
+    HapticFeedback.mediumImpact();
+    notifyListeners();
   }
 
-  // Uložení profilu
   void updateProfile(FaithType faith, bool incognito) {
     user.faith = faith;
     user.isIncognito = incognito;
     notifyListeners();
   }
 
-  // Research Input
   void submitStressLevel(double value) {
     user.currentStressLevel = value;
     notifyListeners();
@@ -183,14 +175,14 @@ class PrayaApp extends StatelessWidget {
       title: 'Praya.app',
       debugShowCheckedModeBanner: false,
       theme: appState.currentTheme,
-      home: const OnboardingScreen(), // Startovací bod
+      home: const OnboardingScreen(),
     );
   }
 }
 
-// --- 3. OBRAZOVKY (SCREENS) ---
+// --- 3. OBRAZOVKY ---
 
-// A. ONBOARDING (The Soul ID)
+// A. ONBOARDING
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
   @override
@@ -207,9 +199,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
             colors: [Color(0xFF0F0C29), Color(0xFF302B63), Color(0xFF24243E)],
+            begin: Alignment.topLeft, end: Alignment.bottomRight,
           ),
         ),
         child: Padding(
@@ -217,91 +208,52 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.water_drop, size: 80, color: Colors.white70)
-                  .animate()
-                  .fadeIn(duration: 1000.ms),
+              const Icon(Icons.public, size: 80, color: Colors.white70).animate().fadeIn(duration: 1000.ms),
               const SizedBox(height: 20),
-              Text("PRAYA",
-                  style: GoogleFonts.cinzel(
-                      fontSize: 40, color: Colors.white, letterSpacing: 5)),
-              Text("Connect Spirit. Measure Hope.",
-                  style: GoogleFonts.raleway(color: Colors.white54)),
+              Text("PRAYA", style: GoogleFonts.cinzel(fontSize: 40, color: Colors.white, letterSpacing: 5)),
+              Text("Gamified Spirituality.", style: GoogleFonts.raleway(color: Colors.white54)),
               const SizedBox(height: 60),
-
-              Text("Odkud čerpáte sílu?",
-                  style:
-                      GoogleFonts.raleway(fontSize: 18, color: Colors.white)),
+              Text("Vyberte svou cestu:", style: GoogleFonts.raleway(fontSize: 18, color: Colors.white)),
               const SizedBox(height: 20),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
-                alignment: WrapAlignment.center,
+                spacing: 10, runSpacing: 10, alignment: WrapAlignment.center,
                 children: FaithType.values.map((faith) {
                   return ChoiceChip(
-                    label: Text(_getFaithLabel(faith)),
+                    label: Text(faith.toString().split('.').last.toUpperCase()),
                     selected: selectedFaith == faith,
-                    onSelected: (selected) {
-                      setState(() => selectedFaith = faith);
-                    },
-                    // Opraveno: withValues místo withOpacity
-                    selectedColor:
-                        Colors.purpleAccent.withValues(alpha: 0.5),
+                    onSelected: (selected) => setState(() => selectedFaith = faith),
+                    selectedColor: Colors.purpleAccent.withValues(alpha: 0.5),
                     backgroundColor: Colors.black26,
                     labelStyle: const TextStyle(color: Colors.white),
                   );
                 }).toList(),
               ),
-
               const SizedBox(height: 40),
               SwitchListTile(
-                title: const Text("Incognito Monk Mode",
-                    style: TextStyle(color: Colors.white)),
-                subtitle: const Text("Vystupovat anonymně jako 'Poutník'",
-                    style: TextStyle(color: Colors.white54, fontSize: 12)),
+                title: const Text("Incognito Monk Mode", style: TextStyle(color: Colors.white)),
                 value: incognito,
-                // Opraveno: activeTrackColor místo activeColor
                 activeTrackColor: Colors.purpleAccent,
                 onChanged: (val) => setState(() => incognito = val),
               ),
-
               const Spacer(),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: Colors.black,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(25)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
                 ),
                 onPressed: () {
-                  context
-                      .read<AppState>()
-                      .updateProfile(selectedFaith, incognito);
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const MainNavigation()));
+                  context.read<AppState>().updateProfile(selectedFaith, incognito);
+                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const MainNavigation()));
                 },
-                child: const Text("VSTOUPIT DO ŘEKY"),
+                child: const Text("START JOURNEY"),
               )
             ],
           ),
         ),
       ),
     );
-  }
-
-  String _getFaithLabel(FaithType f) {
-    switch (f) {
-      case FaithType.christian:
-        return "Křesťanství";
-      case FaithType.muslim:
-        return "Islám";
-      case FaithType.atheist:
-        return "Věda / Ateista";
-      case FaithType.spiritual:
-        return "Spiritualita";
-      case FaithType.universal:
-        return "Univerzální";
-    }
   }
 }
 
@@ -319,6 +271,8 @@ class _MainNavigationState extends State<MainNavigation> {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+    var user = context.watch<AppState>().user;
+    
     return Scaffold(
       body: pages[_index],
       bottomNavigationBar: BottomNavigationBar(
@@ -327,14 +281,14 @@ class _MainNavigationState extends State<MainNavigation> {
         unselectedItemColor: Colors.white24,
         currentIndex: _index,
         onTap: (idx) => setState(() => _index = idx),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.waves), label: "Řeka"),
-          BottomNavigationBarItem(icon: Icon(Icons.park), label: "Můj Strom"),
+        items: [
+          const BottomNavigationBarItem(icon: Icon(Icons.waves), label: "Řeka"),
+          BottomNavigationBarItem(icon: const Icon(Icons.park), label: user.Title), // Dynamický label
         ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: theme.primaryColor,
-        child: const Icon(Icons.auto_awesome), // Aura AI
+        child: const Icon(Icons.auto_awesome),
         onPressed: () => _showAuraAIChat(context),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -342,7 +296,7 @@ class _MainNavigationState extends State<MainNavigation> {
   }
 }
 
-// C. FEED SCREEN (The River)
+// C. FEED SCREEN
 class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
 
@@ -353,115 +307,97 @@ class FeedScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF0A0A12),
-        title: Text("Řeka Naděje",
-            style: GoogleFonts.cinzel(color: Colors.white)),
-        actions: [
-          IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () => _showAddPrayerModal(context)),
-        ],
+        title: Row(
+          children: [
+            Text("Řeka", style: GoogleFonts.cinzel(color: Colors.white)),
+            const Spacer(),
+            const Icon(Icons.local_fire_department, color: Colors.orange, size: 16),
+            Text(" ${state.user.dayStreak} dnů", style: const TextStyle(color: Colors.orange, fontSize: 12)),
+          ],
+        ),
       ),
       body: ListView.builder(
         padding: const EdgeInsets.all(16),
         itemCount: state.prayers.length,
-        itemBuilder: (ctx, i) {
-          var prayer = state.prayers[i];
-          return _buildPrayerCard(context, prayer, i, state);
-        },
+        itemBuilder: (ctx, i) => _buildPrayerCard(context, state.prayers[i], i, state),
       ),
     );
   }
 
-  Widget _buildPrayerCard(
-      BuildContext context, PrayerCardModel prayer, int index, AppState state) {
+  Widget _buildPrayerCard(BuildContext context, PrayerCardModel prayer, int index, AppState state) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: const Color(0xFF151520),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-              color: prayer.isSupportedByMe
-                  ? state.currentTheme.primaryColor.withValues(alpha: 0.5)
-                  : Colors.transparent,
-              width: 1),
-          boxShadow: [
-            if (prayer.isSupportedByMe)
-              BoxShadow(
-                  color: state.currentTheme.primaryColor.withValues(alpha: 0.2),
-                  blurRadius: 20,
-                  spreadRadius: 1)
-          ]),
+        color: const Color(0xFF151520),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: prayer.isSupportedByMe ? state.currentTheme.primaryColor.withValues(alpha: 0.5) : Colors.transparent,
+        ),
+        boxShadow: [
+          if (prayer.isSupportedByMe)
+            BoxShadow(color: state.currentTheme.primaryColor.withValues(alpha: 0.2), blurRadius: 20, spreadRadius: 1)
+        ]
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                  radius: 12,
-                  backgroundColor: Colors.white10,
-                  child: Text(prayer.countryCode,
-                      style: const TextStyle(fontSize: 10))),
+              CircleAvatar(radius: 12, backgroundColor: Colors.white10, child: Text(prayer.countryCode, style: const TextStyle(fontSize: 10))),
               const SizedBox(width: 10),
-              Text(prayer.isAnonymous ? "Tichý Poutník" : prayer.author,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12)),
-              const Spacer(),
-              const Icon(Icons.translate,
-                  size: 16, color: Colors.white24) // AI Translation indicator
+              Text(prayer.isAnonymous ? "Tichý Poutník" : prayer.author, style: const TextStyle(color: Colors.white54, fontSize: 12)),
             ],
           ),
           const SizedBox(height: 15),
-          Text(prayer.content,
-              style: const TextStyle(
-                  fontSize: 16, height: 1.5, color: Colors.white)),
+          Text(prayer.content, style: const TextStyle(fontSize: 16, height: 1.5, color: Colors.white)),
           const SizedBox(height: 20),
+          
+          // GAMIFICATION ACTIONS ROW
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Interaction Button
-              GestureDetector(
-                onTap: () => state.lightCandle(index),
-                child: AnimatedContainer(
-                  duration: 300.ms,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                      color: prayer.isSupportedByMe
-                          ? state.currentTheme.primaryColor.withValues(alpha: 0.2)
-                          : Colors.white10,
-                      borderRadius: BorderRadius.circular(20)),
-                  child: Row(
-                    children: [
-                      Icon(Icons.light_mode,
-                          size: 18,
-                          color: prayer.isSupportedByMe
-                              ? state.currentTheme.primaryColor
-                              : Colors.white54),
-                      const SizedBox(width: 8),
-                      Text("${state.termAction} (${prayer.supporters})",
-                          style: TextStyle(
-                              color: prayer.isSupportedByMe
-                                  ? state.currentTheme.primaryColor
-                                  : Colors.white54,
-                              fontSize: 12))
-                    ],
-                  ),
+              // 1. LIGHT CANDLE (Tap)
+              InkWell(
+                onTap: () {
+                  state.performAction(ActionType.lightCandle, cardIndex: index);
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    content: Text("+5 ${state.termCurrency} (Zapáleno)"),
+                    backgroundColor: state.currentTheme.primaryColor,
+                    duration: const Duration(milliseconds: 500),
+                  ));
+                },
+                child: Chip(
+                  avatar: const Icon(Icons.light_mode, size: 14),
+                  label: Text("Svíčka (${prayer.supporters})"),
+                  backgroundColor: Colors.white10,
                 ),
               ),
-              // Donation Button (MVP Mock)
-              const Icon(Icons.volunteer_activism,
-                  size: 18, color: Colors.white24),
+              
+              // 2. DEEP PRAYER (Long Press)
+              InkWell(
+                onLongPress: () {
+                   state.performAction(ActionType.deepPrayer, cardIndex: index);
+                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                    content: Text("+20 (Hluboká podpora!)"),
+                    backgroundColor: Colors.amber,
+                  ));
+                },
+                child: const Chip(
+                  avatar: Icon(Icons.self_improvement, size: 14),
+                  label: Text("Meditovat"),
+                  backgroundColor: Colors.white10,
+                ),
+              ),
             ],
           )
         ],
       ),
-    )
-        .animate()
-        .slideY(begin: 0.2, end: 0, duration: 500.ms, curve: Curves.easeOut);
+    ).animate().slideY(begin: 0.2, end: 0, duration: 500.ms);
   }
 }
 
-// D. PROFILE SCREEN (Tree of Life)
+// D. PROFILE SCREEN (Gamified)
 class TreeProfileScreen extends StatelessWidget {
   const TreeProfileScreen({super.key});
 
@@ -474,179 +410,76 @@ class TreeProfileScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Research Dashboard Widget
-            Container(
-              padding: const EdgeInsets.all(16),
-              margin: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                  color: Colors.white10,
-                  borderRadius: BorderRadius.circular(15)),
+            // Stats Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatBadge("Level", state.user.treeLevel.toString(), Colors.blue),
+                _buildStatBadge(state.termCurrency, state.user.auraPoints.toString(), state.currentTheme.primaryColor),
+                _buildStatBadge("Streak", "${state.user.dayStreak} dnů", Colors.orange),
+              ],
+            ),
+            const SizedBox(height: 40),
+            
+            // THE TREE
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                Icon(Icons.park, size: 150 + (state.user.treeLevel * 5), color: state.currentTheme.primaryColor.withValues(alpha: 0.8))
+                .animate(onPlay: (c) => c.repeat(reverse: true)).shimmer(duration: 2000.ms),
+                
+                if (state.user.treeLevel > 5) // Glow effect for higher levels
+                  Positioned.fill(child: Icon(Icons.park, size: 160, color: state.currentTheme.primaryColor.withValues(alpha: 0.3)).animate().scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2))),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            Text(state.user.Title.toUpperCase(), style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white, fontWeight: FontWeight.bold)),
+            Text("Další level za ${(state.user.treeLevel + 1) * 50 - state.user.auraPoints} bodů", style: const TextStyle(color: Colors.white30)),
+            
+            const Spacer(),
+            // Research Slider
+             Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.all(20),
+              decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(15)),
               child: Column(
                 children: [
-                  const Text("Váš Stress Level (Research)",
-                      style: TextStyle(color: Colors.white54, fontSize: 10)),
+                  const Text("Research: Stress Level", style: TextStyle(color: Colors.white54)),
                   Slider(
                     value: state.user.currentStressLevel,
-                    min: 0, // DŮLEŽITÉ: Přidáno min
-                    max: 10, // DŮLEŽITÉ: Přidáno max
-                    divisions: 10,
+                    min: 0, max: 10, divisions: 10,
                     activeColor: state.currentTheme.primaryColor,
                     onChanged: (val) => state.submitStressLevel(val),
                   ),
-                  Text("Aktuální: ${state.user.currentStressLevel.toInt()}/10",
-                      style: const TextStyle(color: Colors.white))
                 ],
               ),
             ),
-            const Spacer(),
-
-            // THE TREE (Gamification Visualization)
-            Icon(
-              Icons.park, // Symbol stromu
-              size: 100.0 + (state.user.treeLevel * 20),
-              // Opraveno: withValues místo withOpacity
-              color: state.currentTheme.primaryColor.withValues(
-                  alpha: min(1.0, 0.5 + (state.user.auraPoints / 100))),
-            )
-                .animate(onPlay: (controller) => controller.repeat(reverse: true))
-                // DŮLEŽITÁ OPRAVA: Místo .boxShadow (které padalo) používáme bezpečnější .shimmer
-                .shimmer(duration: 2000.ms, color: Colors.white24)
-                .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 3000.ms),
-
             const SizedBox(height: 20),
-            Text("Strom Života (Level ${state.user.treeLevel})",
-                style: GoogleFonts.cinzel(fontSize: 24, color: Colors.white)),
-            Text("${state.user.auraPoints} Aura Bodů",
-                style: const TextStyle(color: Colors.white54)),
-            const Spacer(),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildStatBadge(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: GoogleFonts.cinzel(fontSize: 24, color: color, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+      ],
+    );
+  }
 }
 
-// E. MODALS & AI CHAT (Funkce)
-
-void _showAddPrayerModal(BuildContext context) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: const Color(0xFF151520),
-    builder: (ctx) => Padding(
-      padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text("Vyslat signál",
-              style: GoogleFonts.cinzel(color: Colors.white, fontSize: 20)),
-          const SizedBox(height: 20),
-          const TextField(
-            decoration: InputDecoration(
-                hintText: "Co ti leží na srdci?",
-                hintStyle: TextStyle(color: Colors.white30),
-                border: InputBorder.none),
-            style: TextStyle(color: Colors.white),
-            maxLines: 4,
-          ),
-          const SizedBox(height: 20),
-          // Pre-Research Slider
-          const Text("Jak velkou tíhu cítíš (1-10)?",
-              style: TextStyle(color: Colors.white54)),
-          // OPRAVA: Slider má definované rozmezí
-          const Slider(
-            value: 7,
-            min: 0,
-            max: 10,
-            divisions: 10,
-            onChanged: null,
-            activeColor: Colors.grey,
-            inactiveColor: Colors.white10,
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-            child: const Text("ODESLAT", style: TextStyle(color: Colors.black)),
-          ),
-          const SizedBox(height: 40),
-        ],
-      ),
-    ),
-  );
-}
-
+// E. AI CHAT
 void _showAuraAIChat(BuildContext context) {
   showModalBottomSheet(
     context: context,
-    isScrollControlled: true,
     backgroundColor: Colors.black.withValues(alpha: 0.9),
     builder: (ctx) => Container(
-      height: MediaQuery.of(ctx).size.height * 0.8,
       padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          Row(children: [
-            const Icon(Icons.auto_awesome, color: Colors.purpleAccent),
-            const SizedBox(width: 10),
-            Text("Aura AI Guide",
-                style: GoogleFonts.cinzel(color: Colors.white))
-          ]),
-          const Divider(color: Colors.white24),
-          Expanded(
-            child: ListView(
-              children: [
-                _buildChatBubble(
-                    "Ahoj, jsem Aura. Vidím, že tvůj strom dnes trochu povadl. Cítíš se unaveně?",
-                    false),
-                _buildChatBubble("Ano, mám strach z práce.", true),
-                _buildChatBubble(
-                    "To je přirozené. Strach je jen stín, který ukazuje, že ti na tom záleží. Chceš, abychom spolu vytvořili krátkou intenci pro klid mysli?",
-                    false),
-              ],
-            ),
-          ),
-          TextField(
-            decoration: InputDecoration(
-              hintText: "Napiš zprávu...",
-              hintStyle: const TextStyle(color: Colors.white30),
-              filled: true,
-              fillColor: Colors.white10,
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none),
-            ),
-            style: const TextStyle(color: Colors.white),
-          )
-        ],
-      ),
-    ),
-  );
-}
-
-Widget _buildChatBubble(String text, bool isMe) {
-  return Align(
-    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-    child: Container(
-      margin: const EdgeInsets.symmetric(vertical: 5),
-      padding: const EdgeInsets.all(15),
-      constraints: const BoxConstraints(maxWidth: 300),
-      decoration: BoxDecoration(
-        color: isMe
-            ? Colors.blueAccent.withValues(alpha: 0.2)
-            : Colors.purpleAccent.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(20),
-          topRight: const Radius.circular(20),
-          bottomLeft: isMe ? const Radius.circular(20) : Radius.circular(0),
-          bottomRight: isMe ? Radius.circular(0) : const Radius.circular(20),
-        ),
-      ),
-      child: Text(text, style: const TextStyle(color: Colors.white)),
+      child: const Center(child: Text("Aura AI se probouzí...", style: TextStyle(color: Colors.white))),
     ),
   );
 }
