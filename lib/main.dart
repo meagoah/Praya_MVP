@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui';
+import 'dart:math';
 
 // --- 1. DATA MODELS & LOGIC ---
 
@@ -29,10 +30,18 @@ class FeedItem {
 class CharityProject {
   String title;
   String description;
-  double progress; // 0.0 - 1.0
+  double progress;
   String raised;
   Color color;
   CharityProject(this.title, this.description, this.progress, this.raised, this.color);
+}
+
+// Nový model pro úroveň
+class LevelInfo {
+  final String title;
+  final String description;
+  final String perk; // Odemčená odměna
+  LevelInfo(this.title, this.description, this.perk);
 }
 
 class AppState extends ChangeNotifier {
@@ -45,38 +54,24 @@ class AppState extends ChangeNotifier {
   int level = 5; 
   double currentStress = 0.5; 
   
-  // CHARITY DATA
-  double totalImpactMoney = 450.0; // Tvoje vygenerovaná částka
+  // CHARITY
+  double totalImpactMoney = 450.0;
   List<CharityProject> charityProjects = [
     CharityProject("Voda pro Afriku", "Výstavba studní v oblasti Sahelu.", 0.75, "750k / 1M Kč", Colors.cyan),
     CharityProject("Vzdělání dětí", "Školní pomůcky pro sirotčinec v Nepálu.", 0.40, "40k / 100k Kč", Colors.orange),
     CharityProject("Oprava Kapličky", "Záchrana kulturního dědictví v Sudetech.", 0.90, "90k / 100k Kč", Colors.green),
   ];
 
-  // FEED DATA
+  // FEED
   List<FeedItem> feed = [
-    FeedItem(
-      id: "1", author: "Maria", country: "BR", 
-      originalText: "Meu filho tem cirurgia amanhã. Preciso sentir que não estou sozinha nisso.",
-      translatedText: "Můj syn má zítra operaci. Potřebuji cítit, že v tom nejsem sama.",
-      likes: 342
-    ),
-    FeedItem(
-      id: "2", author: "John", country: "US", 
-      originalText: "Praying for clarity in my career. The anxiety is overwhelming today.",
-      translatedText: "Modlím se za jasnost v mé kariéře. Úzkost je dnes ohromující.",
-      likes: 890
-    ),
-    FeedItem(
-      id: "3", author: "Aisha", country: "AE", 
-      originalText: "نبحث عن النور في الأوقات المظلمة",
-      translatedText: "Hledáme světlo v temných časech.",
-      likes: 120
-    ),
+    FeedItem(id: "1", author: "Maria", country: "BR", originalText: "Meu filho tem cirurgia amanhã. Preciso sentir que não estou sozinha nisso.", translatedText: "Můj syn má zítra operaci. Potřebuji cítit, že v tom nejsem sama.", likes: 342),
+    FeedItem(id: "2", author: "John", country: "US", originalText: "Praying for clarity in my career. The anxiety is overwhelming today.", translatedText: "Modlím se za jasnost v mé kariéře. Úzkost je dnes ohromující.", likes: 890),
+    FeedItem(id: "3", author: "Aisha", country: "AE", originalText: "نبحث عن النور في الأوقات المظلمة", translatedText: "Hledáme světlo v temných časech.", likes: 120),
   ];
 
   List<String> chatHistory = ["Aura: Vítám tě. Cítím z tebe dnes napětí. Jak ti mohu posloužit?"];
 
+  // THEME ENGINE
   Color get moodColor {
     Color base;
     switch (faith) {
@@ -86,6 +81,41 @@ class AppState extends ChangeNotifier {
       default: base = const Color(0xFF00D2FF);
     }
     return Color.lerp(base, const Color(0xFFFF4B4B), currentStress)!;
+  }
+
+  // --- GAMIFICATION ENGINE (FAITH ADAPTIVE) ---
+  
+  // Vrací data o úrovni podle zvolené víry
+  LevelInfo getLevelData(int targetLevel) {
+    switch (faith) {
+      case FaithType.christian:
+        if (targetLevel <= 1) return LevelInfo("Katechumen", "Tvá cesta teprve začíná. Učíš se naslouchat.", "Přístup k Feedu");
+        if (targetLevel <= 3) return LevelInfo("Poutník", "Vydal ses na cestu modlitby a služby.", "Odemčeny Překlady");
+        if (targetLevel <= 5) return LevelInfo("Učedník", "Pravidelně se modlíš a pomáháš bližním.", "Detailní Statistiky");
+        if (targetLevel <= 10) return LevelInfo("Strážce Víry", "Jsi oporou komunity.", "Aura AI Voice");
+        return LevelInfo("Apoštol Lásky", "Tvá víra hory přenáší.", "Mentorství");
+        
+      case FaithType.atheist:
+        if (targetLevel <= 1) return LevelInfo("Pozorovatel", "Zkoumáš svět a hledáš souvislosti.", "Přístup k Datům");
+        if (targetLevel <= 3) return LevelInfo("Analytik", "Chápeš sílu lidské psychiky.", "Odemčeny Studie");
+        if (targetLevel <= 5) return LevelInfo("Empatik", "Cítíš s ostatními a podporuješ je.", "Mood Tracker");
+        if (targetLevel <= 10) return LevelInfo("Humanista", "Aktivně měníš svět k lepšímu.", "Impact Report");
+        return LevelInfo("Vizjonář", "Tvoříš budoucnost lidstva.", "Global Influence");
+
+      case FaithType.muslim:
+        if (targetLevel <= 1) return LevelInfo("Hledající (Talib)", "Hledáš pravdu a vedení.", "Přístup k Dua");
+        if (targetLevel <= 3) return LevelInfo("Poutník (Salik)", "Kráčíš po přímé stezce.", "Odemčeny Překlady");
+        if (targetLevel <= 5) return LevelInfo("Služebník (Abid)", "Sloužíš komunitě a stvořiteli.", "Charity Boost");
+        if (targetLevel <= 10) return LevelInfo("Bojovník (Mujahid)", "Bojuješ vnitřní boj za dobro.", "Deep Insights");
+        return LevelInfo("Přítel (Wali)", "Jsi blízko zdroji světla.", "Community Leader");
+
+      default: // Universal / Spiritual
+        if (targetLevel <= 1) return LevelInfo("Probuzený", "Otevřel jsi oči novému vnímání.", "Přístup k Řece");
+        if (targetLevel <= 3) return LevelInfo("Hledač Světla", "Aktivně vyhledáváš spojení.", "Odemčena Aura");
+        if (targetLevel <= 5) return LevelInfo("Světlonoš", "Tvá energie inspiruje ostatní.", "Advanced Stats");
+        if (targetLevel <= 10) return LevelInfo("Strážce Frekvence", "Udržuješ harmonii v chaosu.", "Healing Mode");
+        return LevelInfo("Kosmické Vědomí", "Jsi jedno s celkem.", "Avatar Status");
+    }
   }
 
   void login(String name, FaithType selectedFaith) {
@@ -111,7 +141,8 @@ class AppState extends ChangeNotifier {
     ));
     auraPoints += 50;
     currentStress = stress;
-    totalImpactMoney += 5; // Příspěvek na charitu za aktivitu
+    totalImpactMoney += 5;
+    _checkLevelUp();
     notifyListeners();
   }
 
@@ -119,8 +150,14 @@ class AppState extends ChangeNotifier {
     var item = feed.firstWhere((e) => e.id == id);
     item.likes++; item.isLiked = true;
     auraPoints += 15; totalImpactMoney += 1;
+    _checkLevelUp();
     notifyListeners();
     HapticFeedback.heavyImpact();
+  }
+
+  void _checkLevelUp() {
+    int newLevel = (auraPoints / 500).floor() + 1;
+    if (newLevel > level) level = newLevel;
   }
 
   void sendMessage(String text) {
@@ -269,14 +306,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
-// --- 5. MAIN LAYOUT (5 ITEMS) ---
+// --- 5. MAIN LAYOUT ---
 
 class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    // 5 Stránek: Feed, Journey, Create, Insights, Charity
     return Scaffold(
       body: Stack(
         children: [
@@ -304,15 +340,12 @@ class MainLayout extends StatelessWidget {
         children: [
           _dockItem(Icons.waves, 0, state),
           _dockItem(Icons.park_outlined, 1, state),
-          
-          // CREATE BUTTON (Central)
           GestureDetector(
             onTap: () { HapticFeedback.mediumImpact(); state.setIndex(2); },
             child: Container(width: 50, height: 50, decoration: BoxDecoration(shape: BoxShape.circle, gradient: LinearGradient(colors: [state.moodColor, Colors.purple]), boxShadow: [BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 15)]), child: const Icon(Icons.add, color: Colors.white, size: 28)),
           ).animate(target: state.navIndex == 2 ? 1 : 0).scale(end: const Offset(1.1, 1.1)),
-          
           _dockItem(Icons.pie_chart_outline, 3, state),
-          _dockItem(Icons.volunteer_activism, 4, state), // Charity is back!
+          _dockItem(Icons.volunteer_activism, 4, state),
         ],
       ),
     );
@@ -326,7 +359,7 @@ class MainLayout extends StatelessWidget {
 
 // --- 6. SCREENS ---
 
-// A. FEED (Translated)
+// A. FEED
 class HomeFeedScreen extends StatelessWidget {
   const HomeFeedScreen({super.key});
   @override
@@ -379,12 +412,15 @@ class HomeFeedScreen extends StatelessWidget {
   }
 }
 
-// B. JOURNEY
+// B. JOURNEY (EXPANDED GAMIFICATION)
 class JourneyScreen extends StatelessWidget {
   const JourneyScreen({super.key});
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
+    LevelInfo currentLvl = state.getLevelData(state.level);
+    LevelInfo nextLvl = state.getLevelData(state.level + 5); // Ukázka dalšího milníku
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(25),
       child: Column(children: [
@@ -395,19 +431,64 @@ class JourneyScreen extends StatelessWidget {
           Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))),
           Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05), duration: 3000.ms).shimmer(duration: 2000.ms, color: Colors.white),
         ])),
+        
+        // CURRENT LEVEL CARD
+        GlassPanel(glow: true, child: Column(children: [
+          Text("Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)),
+          const SizedBox(height: 5),
+          Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)),
+          const SizedBox(height: 10),
+          Text(currentLvl.description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 15),
+          Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(10)), child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.lock_open, size: 16, color: Colors.amber),
+            const SizedBox(width: 10),
+            Text("Odemčeno: ${currentLvl.perk}", style: const TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold))
+          ]))
+        ])),
+        
+        const SizedBox(height: 30),
+        Align(alignment: Alignment.centerLeft, child: Text("Dnešní Sádhaná (Výzvy)", style: GoogleFonts.cinzel(fontSize: 18))),
+        const SizedBox(height: 15),
+        _buildQuest(state, "Podpoř 3 Poutníky", 1, 3, 50),
+        _buildQuest(state, "Zaznamenej náladu", 1, 1, 20),
+        
+        const SizedBox(height: 30),
         Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))),
         const SizedBox(height: 20),
-        _buildConstellationNode(context, 5, "Světlonoš", false, state),
+        _buildConstellationNode(context, 15, state.getLevelData(15).title, false, state),
         _buildPathLine(),
-        _buildConstellationNode(context, 3, "Strážce", true, state),
+        _buildConstellationNode(context, 10, state.getLevelData(10).title, false, state),
+        _buildPathLine(),
+        _buildConstellationNode(context, 5, state.getLevelData(5).title, true, state), // Current
         _buildPathLine(active: true),
-        _buildConstellationNode(context, 1, "Poutník", true, state),
+        _buildConstellationNode(context, 1, state.getLevelData(1).title, true, state),
         const SizedBox(height: 100),
       ]).animate().scale(),
     );
   }
-  Widget _buildConstellationNode(BuildContext context, int level, String title, bool unlocked, AppState state) {
-    return Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)), if (unlocked && level == 3) Text("Současná úroveň (2450/3000 XP)", style: TextStyle(color: state.moodColor, fontSize: 10))])]);
+
+  Widget _buildQuest(AppState state, String title, int current, int total, int reward) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.white10)),
+      child: Row(children: [
+        Icon(current >= total ? Icons.check_circle : Icons.circle_outlined, color: current >= total ? Colors.green : Colors.white24),
+        const SizedBox(width: 15),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 5),
+          LinearProgressIndicator(value: current/total, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 4)
+        ])),
+        const SizedBox(width: 10),
+        Text("+$reward XP", style: TextStyle(color: state.moodColor, fontWeight: FontWeight.bold, fontSize: 12))
+      ]),
+    );
+  }
+
+  Widget _buildConstellationNode(BuildContext context, int lvl, String title, bool unlocked, AppState state) {
+    return Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)), if (unlocked && lvl == state.level) Text("Současná úroveň", style: TextStyle(color: state.moodColor, fontSize: 10))])]);
   }
   Widget _buildPathLine({bool active = false}) { return Container(margin: const EdgeInsets.only(left: 19, top: 5, bottom: 5), width: 2, height: 30, color: active ? Colors.white54 : Colors.white10); }
 }
@@ -443,7 +524,7 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 }
 
-// D. INSIGHTS (EXPANDED)
+// D. INSIGHTS
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
   @override
@@ -455,8 +536,6 @@ class InsightsScreen extends StatelessWidget {
         Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)),
         const Text("Komplexní spirituální analýza", style: TextStyle(color: Colors.white54)),
         const SizedBox(height: 30),
-        
-        // Graph 1: Stress
         GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Pokles Stresu (7 dní)", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
@@ -465,20 +544,10 @@ class InsightsScreen extends StatelessWidget {
           const Text("Trend: -40% Stresu", style: TextStyle(color: Colors.green))
         ])),
         const SizedBox(height: 20),
-        
-        // Graph 2: Global Impact (Simulated Pie)
         GlassPanel(child: Row(children: [
-          SizedBox(width: 100, height: 100, child: Stack(children: [
-            const CircularProgressIndicator(value: 1, color: Colors.white10),
-            const CircularProgressIndicator(value: 0.7, color: Colors.amber, strokeWidth: 8),
-            Center(child: Text("70%", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)))
-          ])),
+          SizedBox(width: 100, height: 100, child: Stack(children: [const CircularProgressIndicator(value: 1, color: Colors.white10), const CircularProgressIndicator(value: 0.7, color: Colors.amber, strokeWidth: 8), Center(child: Text("70%", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)))])),
           const SizedBox(width: 20),
-          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text("Globální Cíl", style: TextStyle(fontWeight: FontWeight.bold)),
-            Text("1.4M Modliteb", style: TextStyle(fontSize: 20, color: Colors.white70)),
-            Text("Spojené úsilí všech poutníků.", style: TextStyle(fontSize: 12, color: Colors.white38))
-          ]))
+          const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Globální Cíl", style: TextStyle(fontWeight: FontWeight.bold)), Text("1.4M Modliteb", style: TextStyle(fontSize: 20, color: Colors.white70)), Text("Spojené úsilí všech poutníků.", style: TextStyle(fontSize: 12, color: Colors.white38))]))
         ])),
         const SizedBox(height: 100),
       ]),
@@ -486,7 +555,7 @@ class InsightsScreen extends StatelessWidget {
   }
 }
 
-// E. CHARITY (RESTORED & UPGRADED)
+// E. CHARITY
 class CharityScreen extends StatelessWidget {
   const CharityScreen({super.key});
   @override
@@ -498,16 +567,11 @@ class CharityScreen extends StatelessWidget {
         const SizedBox(height: 20),
         Text("Dopad", style: GoogleFonts.cinzel(fontSize: 28)),
         const SizedBox(height: 30),
-        
-        // IMPACT WALLET
         Container(
           padding: const EdgeInsets.all(25),
           decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF00D2FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: const Color(0xFF00D2FF).withValues(alpha: 0.4), blurRadius: 20)]),
           child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text("Tvůj příspěvek", style: TextStyle(color: Colors.white70)),
-              Text("${state.totalImpactMoney.toInt()} Kč", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
-            ]),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Tvůj příspěvek", style: TextStyle(color: Colors.white70)), Text("${state.totalImpactMoney.toInt()} Kč", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))]),
             const Icon(Icons.volunteer_activism, size: 40, color: Colors.white),
           ]),
         ),
@@ -523,10 +587,7 @@ class CharityScreen extends StatelessWidget {
             const SizedBox(height: 15),
             LinearProgressIndicator(value: p.progress, backgroundColor: Colors.white10, color: p.color, minHeight: 8, borderRadius: BorderRadius.circular(5)),
             const SizedBox(height: 8),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              Text("${(p.progress * 100).toInt()}%", style: TextStyle(color: p.color, fontWeight: FontWeight.bold)),
-              Text(p.raised, style: const TextStyle(color: Colors.white38, fontSize: 12)),
-            ])
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${(p.progress * 100).toInt()}%", style: TextStyle(color: p.color, fontWeight: FontWeight.bold)), Text(p.raised, style: const TextStyle(color: Colors.white38, fontSize: 12))])
           ])),
         )),
         const SizedBox(height: 100),
