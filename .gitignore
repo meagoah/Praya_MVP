@@ -5,7 +5,7 @@
 *.swp
 .DS_Store
 .atom/
-!.build/web/
+.build/
 .buildlog/
 .history
 .svn/
