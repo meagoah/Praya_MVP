@@ -38,17 +38,35 @@ class MainLayout extends StatelessWidget {
           Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
           
           // --- AURA AI TLAČÍTKO (UPDATED) ---
-          Positioned(
-            bottom: 120, right: 20,
-            child: FloatingActionButton(
-              backgroundColor: Colors.black,
-              onPressed: () => _openAura(context),
-              // ZMĚNA ZDE: Místo .shimmer() používáme .scale() a .fade() pro efekt dýchání
-              child: const Icon(Icons.auto_awesome, color: Colors.white)
-                  .animate(onPlay: (c) => c.repeat(reverse: true)) // Opakuj tam a zpět (nádech/výdech)
-                  .scale(duration: 3000.ms, begin: const Offset(1.0, 1.0), end: const Offset(1.2, 1.2)) // Velmi pomalé zvětšení
-                  .fade(duration: 3000.ms, begin: 0.7, end: 1.0), // Jemné zjasnění
-            ).animate().scale(duration: 400.ms, curve: Curves.elasticOut), // Úvodní animace při startu
+Positioned(
+            bottom: 120, 
+            right: 20,
+            child: GestureDetector(
+              onTap: () => _openAura(context),
+              child: Container(
+                width: 60, 
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black, // Temné jádro
+                  border: Border.all(color: state.moodColor.withValues(alpha: 0.5), width: 1), // Jemný okraj
+                  boxShadow: [
+                    // Statický jemný stín pro hloubku
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 10, offset: const Offset(0, 4))
+                  ]
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+              )
+              .animate(onPlay: (c) => c.repeat(reverse: true)) // Nekonečný dech
+              .boxShadow(
+                duration: 4000.ms, // 4 sekundy = velmi pomalý, uklidňující dech
+                curve: Curves.easeInOutSine, // Organická křivka (žádné ostré hrany)
+                begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.0), blurRadius: 0, spreadRadius: 0),
+                end: BoxShadow(color: state.moodColor.withValues(alpha: 0.3), blurRadius: 30, spreadRadius: 10), // Rozpínání aury
+              )
+              .animate() // Separátní animace pro ikonu uvnitř
+              .shimmer(duration: 5000.ms, color: Colors.white.withValues(alpha: 0.3), angle: 0.5), // Občasný "odlesk" světla na ikoně
+            ),
           )
         ],
       ),
