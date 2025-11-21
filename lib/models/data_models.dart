@@ -14,7 +14,7 @@ class FeedItem {
   bool isSaved;
   bool isHidden;
   List<String> privateNotes;
-  Color artSeedColor; // Pro generativní umění
+  Color artSeedColor;
 
   FeedItem({
     required this.id,
@@ -48,4 +48,23 @@ class LevelInfo {
   final String description;
   final String perk;
   LevelInfo(this.title, this.description, this.perk);
+}
+
+// --- TOTO ZDE CHYBĚLO ---
+class AppNotification {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final String timeAgo;
+  bool isRead;
+
+  AppNotification({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.timeAgo,
+    this.isRead = false,
+  });
 }

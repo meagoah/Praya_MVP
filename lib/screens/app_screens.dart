@@ -1,16 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/services.dart'; // Pro HapticFeedback
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui';
+import 'dart:ui'; // Pro ImageFilter
 import 'dart:math';
 
+// Importy našich modulů
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
 import '../models/data_models.dart';
 
 // --- 1. ROOT & ONBOARDING ---
+
 class RootSwitcher extends StatelessWidget {
   const RootSwitcher({super.key});
   @override
@@ -100,6 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 }
 
 // --- 2. MAIN LAYOUT ---
+
 class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
 
@@ -124,6 +127,8 @@ class MainLayout extends StatelessWidget {
           const LivingBackground(),
           SafeArea(child: IndexedStack(index: state.navIndex, children: pages)),
           Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
+          
+          // AURA AI BUTTON
           Positioned(
             bottom: 120, right: 20,
             child: FloatingActionButton(
@@ -169,7 +174,7 @@ class MainLayout extends StatelessWidget {
 
 // --- 3. SCREENS ---
 
-// A. FEED SCREEN
+// A. FEED SCREEN (SOUL DASHBOARD + BELL)
 class HomeFeedScreen extends StatelessWidget {
   const HomeFeedScreen({super.key});
   @override
@@ -178,15 +183,32 @@ class HomeFeedScreen extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const PrayaLogo(size: 24), const Icon(Icons.notifications_none, color: Colors.white38)]), 
+        // HEADER
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          const PrayaLogo(size: 24), 
+          GestureDetector(
+            onTap: () => _showNotifications(context, state),
+            child: Stack(alignment: Alignment.topRight, children: [
+               const Padding(padding: EdgeInsets.all(8.0), child: Icon(Icons.notifications_none, color: Colors.white38, size: 28)),
+               if (state.notifications.isNotEmpty) // Zjednodušeno pro demo
+                 Positioned(right: 8, top: 8, child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle)))
+            ]),
+          )
+        ]), 
         const SizedBox(height: 20), 
+        
+        // SOUL DASHBOARD (V16 Feature)
         GlassPanel(glow: true, onTap: () => state.setIndex(1), child: Column(children: [
               Row(children: [Icon(Icons.park, color: state.moodColor), const SizedBox(width: 10), Text(state.getLevelData(state.level).title.toUpperCase(), style: GoogleFonts.cinzel(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)), const Spacer(), Text("Level ${state.level}", style: TextStyle(color: state.moodColor))]),
               const SizedBox(height: 15), LinearProgressIndicator(value: state.levelProgress, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 8, borderRadius: BorderRadius.circular(5)),
               const SizedBox(height: 8), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${state.auraPoints} XP", style: const TextStyle(fontSize: 10, color: Colors.white54)), Text("Do dalšího: ${state.xpMissing} XP", style: TextStyle(fontSize: 10, color: state.moodColor))])
         ])),
+        
         const SizedBox(height: 25),
+        
+        // BIOFEEDBACK
         GlassPanel(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Biofeedback", style: TextStyle(fontSize: 12, color: Colors.white54)), Icon(Icons.circle, size: 8, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale()]), const SizedBox(height: 10), SliderTheme(data: SliderThemeData(trackHeight: 6, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10), activeTrackColor: state.moodColor, thumbColor: Colors.white), child: Slider(value: state.currentStress, onChanged: (v) => state.updateStress(v)))]),), const SizedBox(height: 20), 
+        
         if (state.visibleFeed.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), 
         ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)), 
         const SizedBox(height: 100)
@@ -196,11 +218,9 @@ class HomeFeedScreen extends StatelessWidget {
 
   Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) {
     return Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(glow: item.isLiked, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]),
-        const SizedBox(height: 15), Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))), const SizedBox(height: 15),
-        AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))),
-        const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])),
-        const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10),
+        Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]), const SizedBox(height: 15), 
+        Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))), const SizedBox(height: 15),
+        AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10),
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); }),
           IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))),
@@ -219,7 +239,7 @@ class HomeFeedScreen extends StatelessWidget {
   }
 }
 
-// B. JOURNEY SCREEN
+// B. JOURNEY SCREEN (EDIT + TREE + MAP + JOURNAL)
 class JourneyScreen extends StatelessWidget {
   const JourneyScreen({super.key});
   @override
@@ -238,12 +258,20 @@ class JourneyScreen extends StatelessWidget {
       
       if (!state.showJournal) ...[
         SizedBox(height: 300, child: Stack(alignment: Alignment.center, children: [Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))), Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05)).shimmer(duration: 3000.ms, color: Colors.white)])),
-        GlassPanel(glow: true, child: Column(children: [Text("${state.nickname} • Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)), Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)), const SizedBox(height: 10), Text(currentLvl.description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))])),
+        GlassPanel(glow: true, child: Column(children: [
+          Text("${state.nickname} • Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)),
+          Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)),
+          const SizedBox(height: 10), Text(currentLvl.description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))
+        ])),
         const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20),
         ...state.milestones.map((milestone) { var data = state.getLevelData(milestone); bool unlocked = state.level >= milestone; bool isCurrent = state.level == milestone; return Column(children: [_buildNode(context, milestone, data.title, unlocked, isCurrent, state, data.perk), if (milestone != 1) _buildLine(active: unlocked)]); }), const SizedBox(height: 100)
       ] else ...[
         if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Prázdný deník.", style: TextStyle(color: Colors.white38))),
-        ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Text(n, style: const TextStyle(color: Colors.white))).toList())]))))
+        ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text("Od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5),
+          item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Text(n, style: const TextStyle(color: Colors.white))).toList())
+        ]))))
       ],
       const SizedBox(height: 100),
     ]).animate().scale());
@@ -259,16 +287,27 @@ class JourneyScreen extends StatelessWidget {
 class CreateScreen extends StatefulWidget { const CreateScreen({super.key}); @override State<CreateScreen> createState() => _CreateScreenState(); }
 class _CreateScreenState extends State<CreateScreen> { double _stressVal = 5; final _ctrl = TextEditingController(); @override Widget build(BuildContext context) { return Center(child: SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.edit_note, size: 50, color: Colors.white54), const SizedBox(height: 20), Text("Vyslat Signál", style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white)), const SizedBox(height: 40), GlassPanel(opacity: 0.1, child: TextField(controller: _ctrl, maxLines: 5, style: const TextStyle(color: Colors.white, fontSize: 18), decoration: const InputDecoration(hintText: "Co tě trápí? ...", hintStyle: TextStyle(color: Colors.white30), border: InputBorder.none))), const SizedBox(height: 30), const Text("Jakou tíhu cítíš?", style: TextStyle(color: Colors.white54)), Slider(value: _stressVal, min: 0, max: 10, divisions: 10, activeColor: const Color(0xFF6C63FF), onChanged: (v) => setState(() => _stressVal = v)), const SizedBox(height: 40), SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: () { if (_ctrl.text.isNotEmpty) { context.read<AppState>().createPost(_ctrl.text, _stressVal); context.read<AppState>().setIndex(0); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signál odeslán."), backgroundColor: Color(0xFF6C63FF))); }}, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), child: const Text("ODESLAT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1))))])).animate().scale()); } }
 
-// D. INSIGHTS SCREEN (ENHANCED - SCIENCE DASHBOARD)
+// D. INSIGHTS SCREEN (V19 PROFI SCIENCE)
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
     return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const SizedBox(height: 20), Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)), const Text("Science of Spirit", style: TextStyle(color: Colors.white54)), const SizedBox(height: 30),
+        const SizedBox(height: 20), Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)), 
+        const Text("Analýza dopadu modlitby (Real-time data)", style: TextStyle(color: Colors.white54)), const SizedBox(height: 30),
         
-        // 1. CORRELATION CHART (New!)
+        // GLOBAL PULSE RADAR
+        Center(child: GlassPanel(child: Column(children: [
+          const Text("Globální Puls", style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          const GlobalPulseRadar(), 
+          const SizedBox(height: 20),
+          Text("Aktivních poutníků: 12,450", style: TextStyle(color: state.moodColor))
+        ]))),
+        
+        const SizedBox(height: 20),
+        // TREND CHART (V19)
         GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Korelace: Modlitba vs. Stres", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 20),
           SizedBox(height: 150, width: double.infinity, child: CustomPaint(painter: TrendChartPainter(state.weeklyTrends, state.moodColor))),
@@ -278,27 +317,23 @@ class InsightsScreen extends StatelessWidget {
             Container(width: 8, height: 8, color: Colors.blue.withOpacity(0.5)), const SizedBox(width: 5), const Text("Pokles Stresu", style: TextStyle(fontSize: 10, color: Colors.white54)),
           ])
         ])),
+        
         const SizedBox(height: 20),
-
-        // 2. MOOD GRID (New!)
+        // MOOD GRID (V19)
         GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Mood Grid (30 dní)", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 15),
           Wrap(spacing: 5, runSpacing: 5, children: state.monthlyMoodMap.map((val) => Container(width: 15, height: 15, decoration: BoxDecoration(shape: BoxShape.circle, color: Color.lerp(Colors.greenAccent, Colors.redAccent, val)!.withOpacity(0.7)))).toList())
         ])),
-        const SizedBox(height: 20),
 
-        // 3. PSYCH PROFILE
-        GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Emoční Spektrum", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 15), ...state.emotionDistribution.entries.map((e) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(e.key, style: const TextStyle(fontSize: 12)), Text("${(e.value * 100).toInt()}%", style: TextStyle(color: state.moodColor))]), const SizedBox(height: 5), LinearProgressIndicator(value: e.value, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 6, borderRadius: BorderRadius.circular(5))])))])),
-        const SizedBox(height: 20), 
-        
-        // 4. GLOBAL PULSE (Moved here)
-        Center(child: GlassPanel(child: Column(children: [const Text("Globální Puls", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 20), const GlobalPulseRadar(), const SizedBox(height: 20), Text("Aktivních: 12,450", style: TextStyle(color: state.moodColor))]))),
+        const SizedBox(height: 20),
+        // EMOTIONAL SPECTRUM
+        GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Psychologický Profil", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 15), ...state.emotionDistribution.entries.map((e) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(e.key, style: const TextStyle(fontSize: 12)), Text("${(e.value * 100).toInt()}%", style: TextStyle(color: state.moodColor))]), const SizedBox(height: 5), LinearProgressIndicator(value: e.value, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 6, borderRadius: BorderRadius.circular(5))])))])),
         const SizedBox(height: 100),
       ]));
   }
 }
 
-// --- Custom Painter pro Graf ---
+// --- Custom Painter pro Graf (V19) ---
 class TrendChartPainter extends CustomPainter {
   final List<List<double>> data;
   final Color color;
@@ -307,15 +342,13 @@ class TrendChartPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final paintLine = Paint()..color = color..strokeWidth = 3..style = PaintingStyle.stroke;
     final paintFill = Paint()..color = Colors.blue.withOpacity(0.2)..style = PaintingStyle.fill;
-    
     final pathLine = Path(); final pathFill = Path();
     double step = size.width / (data.length - 1);
-    
     pathFill.moveTo(0, size.height);
     for (int i = 0; i < data.length; i++) {
       double x = i * step;
-      double yLine = size.height - (data[i][1] * size.height); // Aktivita
-      double yFill = size.height - (data[i][0] * size.height * 0.8); // Stres (scaled)
+      double yLine = size.height - (data[i][1] * size.height);
+      double yFill = size.height - (data[i][0] * size.height * 0.8);
       if (i == 0) { pathLine.moveTo(x, yLine); pathFill.lineTo(x, yFill); } else { pathLine.lineTo(x, yLine); pathFill.lineTo(x, yFill); }
     }
     pathFill.lineTo(size.width, size.height); pathFill.close();
@@ -324,7 +357,7 @@ class TrendChartPainter extends CustomPainter {
   @override bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// E. CHARITY SCREEN (ENHANCED - IMPACT WALLET)
+// E. CHARITY SCREEN (V19 IMPACT)
 class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [const SizedBox(height: 20), Text("Dopad", style: GoogleFonts.cinzel(fontSize: 28)), const SizedBox(height: 30), 
         // IMPACT CALCULATOR
         Container(padding: const EdgeInsets.all(25), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF00D2FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: const Color(0xFF00D2FF).withValues(alpha: 0.4), blurRadius: 20)]), child: Column(children: [
@@ -337,5 +370,10 @@ class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); 
             const SizedBox(height: 5), Text(p.description, style: const TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 15), LinearProgressIndicator(value: p.progress, backgroundColor: Colors.white10, color: p.color, minHeight: 8, borderRadius: BorderRadius.circular(5)), const SizedBox(height: 8), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${(p.progress * 100).toInt()}%", style: TextStyle(color: p.color, fontWeight: FontWeight.bold)), Text(p.raised, style: const TextStyle(color: Colors.white38, fontSize: 12))])])))), const SizedBox(height: 100)]).animate().slideX()); } }
 
 // F. AURA MODAL
-class AuraModal extends StatelessWidget { const AuraModal({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), child: Container(height: MediaQuery.of(context).size.height * 0.8, decoration: BoxDecoration(color: const Color(0xFF0A0A15).withValues(alpha: 0.9), borderRadius: const BorderRadius.vertical(top: Radius.circular(40)), border: Border.all(color: Colors.white10)), child: Column(children: [const SizedBox(height: 30), Icon(Icons.auto_awesome, size: 50, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(), const SizedBox(height: 20), Text("AURA AI", style: GoogleFonts.cinzel(fontSize: 24)), Expanded(child: ListView(padding: const EdgeInsets.all(30), children: state.chatHistory.map((msg) => Padding(padding: const EdgeInsets.only(bottom: 20), child: Text(msg, style: TextStyle(color: msg.startsWith("Ty") ? Colors.white : state.moodColor, fontSize: 16)))).toList())), Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 30, left: 30, right: 30), child: TextField(onSubmitted: (val) => context.read<AppState>().sendMessage(val), style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "Napiš...", filled: true, fillColor: Colors.white10, border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none))))]))); } 
+class AuraModal extends StatelessWidget { const AuraModal({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return BackdropFilter(filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20), child: Container(height: MediaQuery.of(context).size.height * 0.8, decoration: BoxDecoration(color: const Color(0xFF0A0A15).withValues(alpha: 0.9), borderRadius: const BorderRadius.vertical(top: Radius.circular(40)), border: Border.all(color: Colors.white10)), child: Column(children: [const SizedBox(height: 30), Icon(Icons.auto_awesome, size: 50, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(), const SizedBox(height: 20), Text("AURA AI", style: GoogleFonts.cinzel(fontSize: 24)), Expanded(child: ListView(padding: const EdgeInsets.all(30), children: state.chatHistory.map((msg) => Padding(padding: const EdgeInsets.only(bottom: 20), child: Text(msg, style: TextStyle(color: msg.startsWith("Ty") ? Colors.white : state.moodColor, fontSize: 16)))).toList())), Padding(padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 30, left: 30, right: 30), child: TextField(onSubmitted: (val) => context.read<AppState>().sendMessage(val), style: const TextStyle(color: Colors.white), decoration: InputDecoration(hintText: "Napiš...", filled: true, fillColor: Colors.white10, border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none))))]))); } }
+
+// G. NOTIFICATIONS MODAL
+void _showNotifications(BuildContext context, AppState state) {
+  state.markNotificationsAsRead();
+  showModalBottomSheet(context: context, backgroundColor: Colors.transparent, builder: (ctx) => BackdropFilter(filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10), child: Container(padding: const EdgeInsets.all(25), decoration: BoxDecoration(color: const Color(0xFF0A0A15).withValues(alpha: 0.9), borderRadius: const BorderRadius.vertical(top: Radius.circular(30)), border: Border.all(color: Colors.white10)), child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.white24, borderRadius: BorderRadius.circular(10)))), const SizedBox(height: 20), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("Ozvěny", style: GoogleFonts.cinzel(fontSize: 24, color: Colors.white)), const Icon(Icons.notifications_active, color: Colors.white24)]), const SizedBox(height: 20), if (state.notifications.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("Zatím žádné ozvěny...", style: TextStyle(color: Colors.white38))), Expanded(child: ListView.separated(itemCount: state.notifications.length, separatorBuilder: (ctx, i) => const Divider(color: Colors.white10), itemBuilder: (ctx, i) { final notif = state.notifications[i]; return ListTile(contentPadding: EdgeInsets.zero, leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: notif.color.withValues(alpha: 0.1), shape: BoxShape.circle), child: Icon(notif.icon, color: notif.color, size: 20)), title: Text(notif.title, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), subtitle: Text(notif.subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)), trailing: Text(notif.timeAgo, style: const TextStyle(color: Colors.white24, fontSize: 10))); }))]))));
 }

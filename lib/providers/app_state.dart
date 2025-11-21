@@ -11,36 +11,44 @@ class AppState extends ChangeNotifier {
   int navIndex = 0;
   int auraPoints = 2450;
   
-  // Level se počítá dynamicky: Každých 500 bodů je nový level
+  // Level se počítá dynamicky
   int get level => (auraPoints / 500).floor() + 1;
   
   double currentStress = 0.5; 
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
 
-  // --- GAMIFICATION HELPERS (Tyto chyběly) ---
-  
-  // Kolik XP potřebuji na další level (např. pro lvl 2 je to 1000)
+  // Helpers
   int get xpForNextLevel => level * 500;
-  
-  // Kolik XP jsem měl na začátku tohoto levelu
   int get xpCurrentLevelStart => (level - 1) * 500;
-  
-  // Kolik XP mi chybí do dalšího levelu
   int get xpMissing => xpForNextLevel - auraPoints;
-  
-  // Procento postupu v aktuálním levelu (0.0 až 1.0)
   double get levelProgress {
     int pointsInCurrentLevel = auraPoints - xpCurrentLevelStart;
     return pointsInCurrentLevel / 500.0;
   }
 
-  // --- DATA ---
+  // --- NOTIFIKACE (Ozvěny) ---
+  List<AppNotification> notifications = [
+    AppNotification(title: "Svíčka zapálena", subtitle: "Maria z Brazílie podpořila tvou modlitbu.", icon: Icons.light_mode, color: Colors.amber, timeAgo: "2m"),
+    AppNotification(title: "Nový Level!", subtitle: "Dosáhl jsi úrovně Hledač.", icon: Icons.arrow_upward, color: Colors.cyan, timeAgo: "1h"),
+    AppNotification(title: "Aura má vzkaz", subtitle: "Dnešní den je vhodný pro reflexi.", icon: Icons.auto_awesome, color: Colors.purpleAccent, timeAgo: "5h"),
+  ];
+
+  int get unreadNotificationsCount => notifications.where((n) => !n.isRead).length;
+
+  void markNotificationsAsRead() {
+    for (var n in notifications) {
+      n.isRead = true;
+    }
+    notifyListeners();
+  }
+
+  // Data pro Insights
   final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
   final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
   final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
 
-  // Simulace trendu pro graf [Stres, Aktivita]
+  // Simulace trendu
   final List<List<double>> weeklyTrends = [
     [0.8, 0.2], [0.7, 0.3], [0.9, 0.1], 
     [0.6, 0.6], [0.4, 0.8], [0.3, 0.9], [0.2, 0.8] 
