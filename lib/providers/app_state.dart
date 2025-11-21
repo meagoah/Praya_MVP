@@ -10,21 +10,43 @@ class AppState extends ChangeNotifier {
   
   int navIndex = 0;
   int auraPoints = 2450;
+  
+  // Level se počítá dynamicky: Každých 500 bodů je nový level
   int get level => (auraPoints / 500).floor() + 1;
+  
   double currentStress = 0.5; 
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
 
-  // Helpers
+  // --- GAMIFICATION HELPERS (Tyto chyběly) ---
+  
+  // Kolik XP potřebuji na další level (např. pro lvl 2 je to 1000)
   int get xpForNextLevel => level * 500;
+  
+  // Kolik XP jsem měl na začátku tohoto levelu
   int get xpCurrentLevelStart => (level - 1) * 500;
+  
+  // Kolik XP mi chybí do dalšího levelu
   int get xpMissing => xpForNextLevel - auraPoints;
-  double get levelProgress => (auraPoints - xpCurrentLevelStart) / 500;
+  
+  // Procento postupu v aktuálním levelu (0.0 až 1.0)
+  double get levelProgress {
+    int pointsInCurrentLevel = auraPoints - xpCurrentLevelStart;
+    return pointsInCurrentLevel / 500.0;
+  }
 
-  // Data
+  // --- DATA ---
   final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
   final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
   final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
+
+  // Simulace trendu pro graf [Stres, Aktivita]
+  final List<List<double>> weeklyTrends = [
+    [0.8, 0.2], [0.7, 0.3], [0.9, 0.1], 
+    [0.6, 0.6], [0.4, 0.8], [0.3, 0.9], [0.2, 0.8] 
+  ];
+  
+  final List<double> monthlyMoodMap = List.generate(30, (index) => (sin(index * 0.5) + 1) / 2 * 0.8 + 0.1);
 
   List<CharityProject> charityProjects = [
     CharityProject("Voda pro Afriku", "Výstavba studní v oblasti Sahelu.", 0.75, "750k / 1M Kč", Colors.cyan),
@@ -104,6 +126,12 @@ class AppState extends ChangeNotifier {
 
   void dischargePrayer(String id) {
     var item = feed.firstWhere((e) => e.id == id); item.likes++; item.isLiked = true; auraPoints += 15; totalImpactMoney += 1; notifyListeners(); HapticFeedback.heavyImpact();
+  }
+  
+  void allocateCharity(String title) {
+    totalImpactMoney += 10; 
+    notifyListeners();
+    HapticFeedback.mediumImpact();
   }
 
   void sendMessage(String text) {
