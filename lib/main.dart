@@ -22,7 +22,7 @@ class FeedItem {
   bool isSaved;
   bool isHidden; 
   List<String> privateNotes;
-  // NEW: Unikátní barva pro generativní umění
+  // Barva se generuje, ale tvar je nyní klíčový
   Color artSeedColor; 
 
   FeedItem({
@@ -77,9 +77,10 @@ class AppState extends ChangeNotifier {
   ];
 
   List<FeedItem> feed = [
-    FeedItem(id: "1", author: "Maria", country: "BR", originalText: "Meu filho tem cirurgia amanhã.", translatedText: "Můj syn má zítra operaci.", likes: 342, artSeedColor: Colors.orange),
-    FeedItem(id: "2", author: "John", country: "US", originalText: "Praying for clarity.", translatedText: "Modlím se za jasnost.", likes: 890, artSeedColor: Colors.blue),
-    FeedItem(id: "3", author: "Aisha", country: "AE", originalText: "نبحث عن النور", translatedText: "Hledáme světlo.", likes: 120, artSeedColor: Colors.purple),
+    // Různé texty vygenerují RŮZNÉ OBRAZCE (díky hashCode)
+    FeedItem(id: "1", author: "Maria", country: "BR", originalText: "Meu filho tem cirurgia amanhã.", translatedText: "Můj syn má zítra operaci.", likes: 342, artSeedColor: Colors.orangeAccent),
+    FeedItem(id: "2", author: "John", country: "US", originalText: "Thank you universe for the guidance.", translatedText: "Děkuji vesmíre za vedení.", likes: 890, artSeedColor: Colors.cyanAccent),
+    FeedItem(id: "3", author: "Aisha", country: "AE", originalText: "نبحث عن النور", translatedText: "Hledáme světlo v temnotě.", likes: 120, artSeedColor: Colors.purpleAccent),
   ];
 
   List<String> chatHistory = ["Aura: Vítám tě. Cítím z tebe dnes napětí. Jak ti mohu posloužit?"];
@@ -99,7 +100,6 @@ class AppState extends ChangeNotifier {
   List<FeedItem> get visibleFeed => feed.where((i) => !i.isHidden).toList();
 
   LevelInfo getLevelData(int targetLevel) {
-    // Zkrácená logika pro MVP
     if (targetLevel <= 1) return LevelInfo("Poutník", "Začátek cesty.", "Feed");
     if (targetLevel <= 5) return LevelInfo("Hledač", "Hledáš pravdu.", "Art Gen");
     if (targetLevel <= 10) return LevelInfo("Strážce", "Chráníš světlo.", "Aura Voice");
@@ -118,7 +118,6 @@ class AppState extends ChangeNotifier {
   void reportPost(String id) { var item = feed.firstWhere((e) => e.id == id); item.isHidden = true; notifyListeners(); }
   
   void createPost(String text, double stress) {
-    // Generujeme "Art Color" na základě textu (hash)
     Color generatedColor = Color((Random().nextDouble() * 0xFFFFFF).toInt()).withValues(alpha: 1.0);
     feed.insert(0, FeedItem(id: DateTime.now().toString(), author: nickname.isEmpty ? "Ty" : nickname, country: "CZ", originalText: text, translatedText: text, showTranslation: true, artSeedColor: generatedColor));
     auraPoints += 50; currentStress = stress; totalImpactMoney += 5; notifyListeners();
@@ -175,115 +174,102 @@ class PrayaLogo extends StatelessWidget {
   }
 }
 
-// --- NEW: GENERATIVE PRAYER ART ---
-class PrayerArtWidget extends StatelessWidget {
+// --- NEW: THE SOUL SIGNATURE ENGINE (Generative Art) ---
+class SoulSignatureWidget extends StatelessWidget {
+  final String text;
   final Color seedColor;
-  const PrayerArtWidget({super.key, required this.seedColor});
+  const SoulSignatureWidget({super.key, required this.text, required this.seedColor});
 
   @override
   Widget build(BuildContext context) {
+    // Použijeme hashcode textu jako seed pro náhodu -> deterministické umění
     return SizedBox(
-      height: 100,
+      height: 120,
       width: double.infinity,
       child: CustomPaint(
-        painter: MandalaPainter(seedColor),
+        painter: SoulSignaturePainter(text.hashCode, seedColor),
       ),
     );
   }
 }
 
-class MandalaPainter extends CustomPainter {
+class SoulSignaturePainter extends CustomPainter {
+  final int seed;
   final Color color;
-  MandalaPainter(this.color);
+  SoulSignaturePainter(this.seed, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.5..color = color.withValues(alpha: 0.5);
+    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.2..color = color.withValues(alpha: 0.6);
+    final rnd = Random(seed); // Deterministická náhoda
+
+    // 1. Základní parametry "duše"
+    int points = rnd.nextInt(8) + 4; // 4 až 12 cípů
+    double layers = rnd.nextInt(4) + 3.0; // 3 až 7 vrstev
+    bool isSharp = rnd.nextBool(); // Ostré vs Oblé tvary
     
-    // Generativní kruhy (Mandala)
-    for (int i = 0; i < 5; i++) {
-      canvas.drawCircle(center, (i + 1) * 8.0, paint);
+    // 2. Kreslení vrstev
+    for (int i = 0; i < layers; i++) {
+      double radius = (i + 1) * (size.height / 2 / layers) * 0.8;
+      paint.color = color.withValues(alpha: 1.0 - (i / layers));
+      paint.strokeWidth = (layers - i) * 0.5;
+
+      if (isSharp && i % 2 == 0) {
+        // Kreslení hvězdy/krystalu
+        Path path = Path();
+        for (int j = 0; j < points * 2; j++) {
+          double angle = (j * pi) / points;
+          double r = (j % 2 == 0) ? radius : radius * 0.5;
+          double x = center.dx + cos(angle) * r;
+          double y = center.dy + sin(angle) * r;
+          if (j == 0) path.moveTo(x, y); else path.lineTo(x, y);
+        }
+        path.close();
+        canvas.drawPath(path, paint);
+      } else {
+        // Kreslení květu/kruhu
+        if (rnd.nextBool()) {
+           canvas.drawCircle(center, radius, paint);
+        } else {
+           // Obloučky (Petals)
+           for (int j = 0; j < points; j++) {
+             double angle = (j * 2 * pi) / points;
+             canvas.drawOval(Rect.fromCenter(center: center + Offset(cos(angle)*radius*0.5, sin(angle)*radius*0.5), width: radius/2, height: radius/2), paint);
+           }
+        }
+      }
     }
-    // Paprsky
-    for (int i = 0; i < 8; i++) {
-      double angle = (i * pi) / 4;
-      canvas.drawLine(
-        center + Offset(cos(angle) * 10, sin(angle) * 10),
-        center + Offset(cos(angle) * 40, sin(angle) * 40),
-        paint..color = color.withValues(alpha: 0.3)
-      );
-    }
+    
+    // 3. Jádro (Core)
+    canvas.drawCircle(center, 3, Paint()..color = Colors.white..style = PaintingStyle.fill);
   }
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false; // Neměnit, pokud se nezmění seed
 }
 
-// --- NEW: GLOBAL PULSE RADAR ---
+// --- GLOBAL PULSE RADAR (STAYS AS RADAR) ---
 class GlobalPulseRadar extends StatefulWidget {
   const GlobalPulseRadar({super.key});
   @override
   State<GlobalPulseRadar> createState() => _GlobalPulseRadarState();
 }
-
 class _GlobalPulseRadarState extends State<GlobalPulseRadar> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
-  }
-
-  @override
-  void dispose() { _controller.dispose(); super.dispose(); }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 200,
-      width: 200,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return CustomPaint(
-            painter: RadarPainter(_controller.value),
-          );
-        },
-      ),
-    );
-  }
+  @override void initState() { super.initState(); _controller = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat(); }
+  @override void dispose() { _controller.dispose(); super.dispose(); }
+  @override Widget build(BuildContext context) { return SizedBox(height: 200, width: 200, child: AnimatedBuilder(animation: _controller, builder: (context, child) { return CustomPaint(painter: RadarPainter(_controller.value)); })); }
 }
-
 class RadarPainter extends CustomPainter {
-  final double progress;
-  RadarPainter(this.progress);
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = Colors.white.withValues(alpha: 0.1);
-    
-    // Statické kruhy
-    canvas.drawCircle(center, 40, paint);
-    canvas.drawCircle(center, 70, paint);
-    canvas.drawCircle(center, 90, paint);
-    
-    // Pulzující vlna
-    final wavePaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.0..color = Colors.cyanAccent.withValues(alpha: 1.0 - progress);
-    canvas.drawCircle(center, progress * 90, wavePaint);
-
-    // "Modlitby" (tečky)
-    final dotPaint = Paint()..style = PaintingStyle.fill..color = Colors.amber;
-    final random = Random(42); // Pevný seed pro stabilitu
-    for (int i = 0; i < 5; i++) {
-      double angle = random.nextDouble() * 2 * pi + (progress * pi); // Rotace
-      double dist = 30 + random.nextDouble() * 50;
-      canvas.drawCircle(center + Offset(cos(angle) * dist, sin(angle) * dist), 3, dotPaint);
-    }
+  final double progress; RadarPainter(this.progress);
+  @override void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2); final paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 1.0..color = Colors.white.withValues(alpha: 0.1);
+    canvas.drawCircle(center, 40, paint); canvas.drawCircle(center, 70, paint); canvas.drawCircle(center, 90, paint);
+    final wavePaint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.0..color = Colors.cyanAccent.withValues(alpha: 1.0 - progress); canvas.drawCircle(center, progress * 90, wavePaint);
+    final dotPaint = Paint()..style = PaintingStyle.fill..color = Colors.amber; final random = Random(42);
+    for (int i = 0; i < 5; i++) { double angle = random.nextDouble() * 2 * pi + (progress * pi); double dist = 30 + random.nextDouble() * 50; canvas.drawCircle(center + Offset(cos(angle) * dist, sin(angle) * dist), 3, dotPaint); }
   }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+  @override bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
 
 // --- 4. MAIN ENTRY ---
@@ -309,7 +295,7 @@ class MainLayout extends StatelessWidget { const MainLayout({super.key}); @overr
   Widget _dockItem(IconData icon, int index, AppState state) { bool active = state.navIndex == index; return GestureDetector(onTap: () { HapticFeedback.lightImpact(); state.setIndex(index); }, child: AnimatedContainer(duration: 300.ms, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: active ? Colors.white10 : Colors.transparent, shape: BoxShape.circle), child: Icon(icon, color: active ? state.moodColor : Colors.white38, size: 24))); }
 }
 
-// A. FEED SCREEN (WITH SOUL DASHBOARD)
+// A. FEED SCREEN
 class HomeFeedScreen extends StatelessWidget { const HomeFeedScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [
       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const PrayaLogo(size: 24), Icon(Icons.notifications_none, color: Colors.white38)]), 
       const SizedBox(height: 20), 
@@ -323,8 +309,8 @@ class HomeFeedScreen extends StatelessWidget { const HomeFeedScreen({super.key})
       GlassPanel(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Biofeedback", style: TextStyle(fontSize: 12, color: Colors.white54)), Icon(Icons.circle, size: 8, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale()]), const SizedBox(height: 10), SliderTheme(data: SliderThemeData(trackHeight: 6, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10), activeTrackColor: state.moodColor, thumbColor: Colors.white), child: Slider(value: state.currentStress, onChanged: (v) => state.updateStress(v)))]),), const SizedBox(height: 20), if (state.visibleFeed.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)), const SizedBox(height: 100)]).animate().fadeIn()); }
   
   Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) { return Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(glow: item.isLiked, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]), const SizedBox(height: 15), 
-  // PRAYER ART INTEGRATION
-  Center(child: Opacity(opacity: 0.6, child: PrayerArtWidget(seedColor: item.artSeedColor))),
+  // GENERATIVE ART
+  Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))),
   const SizedBox(height: 15),
   AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Odstraněno z deníku" : "Uloženo do Deníku vděčnosti"))); }), IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))), GestureDetector(onLongPress: () => state.dischargePrayer(item.id), child:  AnimatedContainer(duration: 500.ms, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: item.isLiked ? [state.moodColor, Colors.purple] : [Colors.white10, Colors.white10]), borderRadius: BorderRadius.circular(15)), child: Center(child: item.isLiked ? const Text("ODESLÁNO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.white)) : const Text("PODRŽET", style: TextStyle(fontSize: 10, color: Colors.white54)))))])]))); }
   void _showReportSheet(BuildContext context, AppState state, String id) { showModalBottomSheet(context: context, backgroundColor: const Color(0xFF101015), builder: (ctx) => Container(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, children: [const Text("Nahlásit příspěvek", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 20), ListTile(leading: const Icon(Icons.warning, color: Colors.red), title: const Text("Nenávistný projev", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.block, color: Colors.orange), title: const Text("Spam nebo reklama", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.sentiment_very_dissatisfied, color: Colors.blue), title: const Text("Negativní energie", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); })]))); }
@@ -341,7 +327,7 @@ class JourneyScreen extends StatelessWidget { const JourneyScreen({super.key}); 
 class CreateScreen extends StatefulWidget { const CreateScreen({super.key}); @override State<CreateScreen> createState() => _CreateScreenState(); }
 class _CreateScreenState extends State<CreateScreen> { double _stressVal = 5; final _ctrl = TextEditingController(); @override Widget build(BuildContext context) { return Center(child: SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.edit_note, size: 50, color: Colors.white54), const SizedBox(height: 20), Text("Vyslat Signál", style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white)), const SizedBox(height: 40), GlassPanel(opacity: 0.1, child: TextField(controller: _ctrl, maxLines: 5, style: const TextStyle(color: Colors.white, fontSize: 18), decoration: const InputDecoration(hintText: "Co tě trápí? ...", hintStyle: TextStyle(color: Colors.white30), border: InputBorder.none))), const SizedBox(height: 30), const Text("Jakou tíhu cítíš?", style: TextStyle(color: Colors.white54)), Slider(value: _stressVal, min: 0, max: 10, divisions: 10, activeColor: const Color(0xFF6C63FF), onChanged: (v) => setState(() => _stressVal = v)), const SizedBox(height: 40), SizedBox(width: double.infinity, height: 55, child: ElevatedButton(onPressed: () { if (_ctrl.text.isNotEmpty) { context.read<AppState>().createPost(_ctrl.text, _stressVal); context.read<AppState>().setIndex(0); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signál odeslán. +50 Bodů."), backgroundColor: Color(0xFF6C63FF))); }}, style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))), child: const Text("ODESLAT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1))))])).animate().scale()); } }
 
-// D. INSIGHTS (WITH GLOBAL PULSE RADAR)
+// D. INSIGHTS
 class InsightsScreen extends StatelessWidget {
   const InsightsScreen({super.key});
   @override
@@ -351,11 +337,11 @@ class InsightsScreen extends StatelessWidget {
         const SizedBox(height: 20), Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)), 
         const Text("Analýza dopadu modlitby (Real-time data)", style: TextStyle(color: Colors.white54)), const SizedBox(height: 30),
         
-        // GLOBAL PULSE RADAR (NEW!)
+        // GLOBAL PULSE RADAR
         Center(child: GlassPanel(child: Column(children: [
           const Text("Globální Puls", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 20),
-          const GlobalPulseRadar(), // The Mind-Blowing Part
+          const GlobalPulseRadar(), 
           const SizedBox(height: 20),
           Text("Aktivních poutníků: 12,450", style: TextStyle(color: state.moodColor))
         ]))),
