@@ -62,15 +62,10 @@ class AppState extends ChangeNotifier {
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
 
-  // INSIGHTS DATA (FABRICATED RESEARCH)
-  final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7]; // Stres před
-  final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];  // Stres po (efekt modlitby)
-  final Map<String, double> emotionDistribution = {
-    "Vděčnost": 0.45,
-    "Prosba / Úzkost": 0.30,
-    "Naděje": 0.15,
-    "Smutek": 0.10,
-  };
+  // INSIGHTS DATA
+  final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
+  final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
+  final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
 
   List<CharityProject> charityProjects = [
     CharityProject("Voda pro Afriku", "Výstavba studní v oblasti Sahelu.", 0.75, "750k / 1M Kč", Colors.cyan),
@@ -86,25 +81,52 @@ class AppState extends ChangeNotifier {
 
   List<String> chatHistory = ["Aura: Vítám tě. Cítím z tebe dnes napětí. Jak ti mohu posloužit?"];
 
+  // --- UPDATED MOOD COLORS (SOFTER) ---
   Color get moodColor {
     Color base;
     switch (faith) {
-      case FaithType.christian: base = Colors.amber; break;
-      case FaithType.muslim: base = Colors.green; break;
-      case FaithType.atheist: base = Colors.teal; break;
-      default: base = const Color(0xFF00D2FF);
+      case FaithType.christian: base = const Color(0xFFFFC107); // Soft Amber
+      case FaithType.muslim: base = const Color(0xFF4CAF50); // Soft Green
+      case FaithType.atheist: base = const Color(0xFF26A69A); // Soft Teal
+      default: base = const Color(0xFF29B6F6); // Soft Sky Blue
     }
-    return Color.lerp(base, const Color(0xFFFF4B4B), currentStress)!;
+    // Interpolace do jemné terakoty místo krvavé červené
+    return Color.lerp(base, const Color(0xFFE57373), currentStress)!;
   }
   
   List<FeedItem> get savedPosts => feed.where((i) => i.isSaved && !i.isHidden).toList();
   List<FeedItem> get visibleFeed => feed.where((i) => !i.isHidden).toList();
 
+  // --- EXPANDED GAMIFICATION LEVELS ---
   LevelInfo getLevelData(int targetLevel) {
-     if (targetLevel <= 1) return LevelInfo("Poutník", "Začátek cesty.", "Feed");
-     if (targetLevel <= 5) return LevelInfo("Hledač", "Hledáš pravdu.", "Stats");
-     if (targetLevel <= 10) return LevelInfo("Strážce", "Chráníš světlo.", "Aura Voice");
-     return LevelInfo("Světlonoš", "Záříš pro ostatní.", "Mentor");
+    switch (faith) {
+      case FaithType.christian:
+        if (targetLevel <= 1) return LevelInfo("Katechumen", "Tvá cesta teprve začíná. Učíš se naslouchat.", "Feed");
+        if (targetLevel <= 3) return LevelInfo("Poutník", "Vydal ses na cestu modlitby a služby.", "Překlady");
+        if (targetLevel <= 5) return LevelInfo("Učedník", "Pravidelně se modlíš a pomáháš bližním.", "Statistiky");
+        if (targetLevel <= 10) return LevelInfo("Strážce Víry", "Jsi oporou komunity.", "Aura Voice");
+        if (targetLevel <= 20) return LevelInfo("Misionář Naděje", "Šíříš světlo i za hranice své bubliny.", "Global Impact");
+        if (targetLevel <= 30) return LevelInfo("Tichý Mentor", "Tvá moudrost inspiruje nové poutníky.", "Private Circles");
+        return LevelInfo("Apoštol Lásky", "Tvá víra hory přenáší.", "Legacy Mode");
+        
+      case FaithType.atheist:
+        if (targetLevel <= 1) return LevelInfo("Pozorovatel", "Zkoumáš svět a hledáš souvislosti.", "Feed");
+        if (targetLevel <= 3) return LevelInfo("Analytik", "Chápeš sílu lidské psychiky.", "Studie");
+        if (targetLevel <= 5) return LevelInfo("Empatik", "Cítíš s ostatními a podporuješ je.", "Tracker");
+        if (targetLevel <= 10) return LevelInfo("Humanista", "Aktivně měníš svět k lepšímu.", "Impact Report");
+        if (targetLevel <= 20) return LevelInfo("Filantrop Myšlenky", "Tvé činy mají reálný dopad.", "Allocation Power");
+        if (targetLevel <= 30) return LevelInfo("Architekt Společnosti", "Buduješ mosty mezi lidmi.", "Trend Prediction");
+        return LevelInfo("Vizjonář", "Tvoříš budoucnost lidstva.", "Global Influence");
+
+      default: // Universal
+        if (targetLevel <= 1) return LevelInfo("Probuzený", "Otevřel jsi oči novému vnímání.", "Feed");
+        if (targetLevel <= 3) return LevelInfo("Hledač Světla", "Aktivně vyhledáváš spojení.", "Aura");
+        if (targetLevel <= 5) return LevelInfo("Světlonoš", "Tvá energie inspiruje ostatní.", "Advanced Stats");
+        if (targetLevel <= 10) return LevelInfo("Strážce Frekvence", "Udržuješ harmonii v chaosu.", "Healing Mode");
+        if (targetLevel <= 20) return LevelInfo("Tkadlec Osudu", "Vidíš souvislosti, které jiným unikají.", "Deep Connect");
+        if (targetLevel <= 30) return LevelInfo("Vědomý Tvůrce", "Tvé intence mění realitu.", "Group Flow");
+        return LevelInfo("Kosmické Vědomí", "Jsi jedno s celkem.", "Avatar Status");
+    }
   }
 
   void login(String name, FaithType selectedFaith) { nickname = name; faith = selectedFaith; isLoggedIn = true; notifyListeners(); }
@@ -130,19 +152,50 @@ class AppState extends ChangeNotifier {
   }
 }
 
-// --- 3. UI COMPONENTS ---
+// --- 3. UI COMPONENTS (SOFT DESIGN) ---
 
 class LivingBackground extends StatelessWidget {
   const LivingBackground({super.key});
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    return Stack(children: [
-        Container(color: const Color(0xFF05050A)),
-        AnimatedPositioned(duration: 2000.ms, top: state.currentStress * -50, left: -100, child: AnimatedContainer(duration: 1000.ms, width: 500, height: 500, decoration: BoxDecoration(shape: BoxShape.circle, color: state.moodColor.withValues(alpha: 0.15), boxShadow: [BoxShadow(color: state.moodColor, blurRadius: 120 + (state.currentStress * 100))])).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2), duration: 4000.ms)),
-        Positioned(bottom: -100, right: -100, child: AnimatedContainer(duration: 1000.ms, width: 400, height: 400, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.purpleAccent.withValues(alpha: 0.1), boxShadow: [BoxShadow(color: Colors.purpleAccent.withValues(alpha: 0.2), blurRadius: 150)])).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.3, 1.3), duration: 5000.ms)),
-        Opacity(opacity: 0.03, child: Container(decoration: const BoxDecoration(image: DecorationImage(image: NetworkImage("https://www.transparenttextures.com/patterns/stardust.png"), repeat: ImageRepeat.repeat)))),
-    ]);
+    return Stack(
+      children: [
+        Container(color: const Color(0xFF080810)), // Slightly lighter black
+        // 1. Soft Primary Light
+        AnimatedPositioned(
+          duration: 3000.ms, // Zpomaleno pro uklidnění
+          curve: Curves.easeInOut,
+          top: state.currentStress * -30, 
+          left: -50,
+          child: AnimatedContainer(
+            duration: 2000.ms,
+            width: 600, height: 600,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle, 
+              // Snížená opacity pro jemnost
+              color: state.moodColor.withValues(alpha: 0.08), 
+              boxShadow: [BoxShadow(color: state.moodColor.withValues(alpha: 0.15), blurRadius: 150)]
+            ),
+          ).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.1, 1.1), duration: 6000.ms),
+        ),
+        // 2. Soft Secondary Light (Purple)
+        Positioned(
+          bottom: -150, right: -100,
+          child: AnimatedContainer(
+            duration: 2000.ms,
+            width: 500, height: 500,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle, 
+              color: Colors.deepPurple.withValues(alpha: 0.05), 
+              boxShadow: [BoxShadow(color: Colors.deepPurple.withValues(alpha: 0.1), blurRadius: 180)]
+            ),
+          ).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2), duration: 7000.ms),
+        ),
+        // Grain Texture (Atmosphere)
+        Opacity(opacity: 0.02, child: Container(decoration: const BoxDecoration(image: DecorationImage(image: NetworkImage("https://www.transparenttextures.com/patterns/stardust.png"), repeat: ImageRepeat.repeat)))),
+      ],
+    );
   }
 }
 
@@ -155,7 +208,20 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    return GestureDetector(onTap: onTap, child: ClipRRect(borderRadius: BorderRadius.circular(24), child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15), child: AnimatedContainer(duration: 500.ms, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white.withValues(alpha: opacity), borderRadius: BorderRadius.circular(24), border: Border.all(color: glow ? state.moodColor.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.08)), boxShadow: glow ? [BoxShadow(color: state.moodColor.withValues(alpha: 0.2), blurRadius: 30)] : []), child: child))));
+    return GestureDetector(
+      onTap: onTap,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), // Mírně snížený blur
+          child: AnimatedContainer(
+            duration: 500.ms, padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: opacity), borderRadius: BorderRadius.circular(24), border: Border.all(color: glow ? state.moodColor.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05)), boxShadow: glow ? [BoxShadow(color: state.moodColor.withValues(alpha: 0.1), blurRadius: 20)] : []),
+            child: child,
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -166,8 +232,12 @@ class PrayaLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
     return Column(mainAxisSize: MainAxisSize.min, children: [
-        Stack(alignment: Alignment.center, children: [Icon(Icons.water_drop, size: size, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).shimmer(duration: 2000.ms, color: Colors.white), Icon(Icons.water_drop_outlined, size: size, color: Colors.white.withValues(alpha: 0.5))]),
-        const SizedBox(height: 5), Text("PRAYA", style: GoogleFonts.cinzel(fontSize: size * 0.5, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.white)),
+        Stack(alignment: Alignment.center, children: [
+            Icon(Icons.water_drop, size: size, color: state.moodColor.withValues(alpha: 0.8)).animate(onPlay: (c)=>c.repeat(reverse: true)).shimmer(duration: 3000.ms, color: Colors.white54),
+            Icon(Icons.water_drop_outlined, size: size, color: Colors.white.withValues(alpha: 0.3)),
+          ]),
+        const SizedBox(height: 5),
+        Text("PRAYA", style: GoogleFonts.cinzel(fontSize: size * 0.5, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.white)),
     ]);
   }
 }
@@ -195,15 +265,15 @@ class MainLayout extends StatelessWidget { const MainLayout({super.key}); @overr
   Widget _dockItem(IconData icon, int index, AppState state) { bool active = state.navIndex == index; return GestureDetector(onTap: () { HapticFeedback.lightImpact(); state.setIndex(index); }, child: AnimatedContainer(duration: 300.ms, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: active ? Colors.white10 : Colors.transparent, shape: BoxShape.circle), child: Icon(icon, color: active ? state.moodColor : Colors.white38, size: 24))); }
 }
 
-// A. FEED
+// A. FEED SCREEN
 class HomeFeedScreen extends StatelessWidget { const HomeFeedScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const PrayaLogo(size: 30), Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: Text("${state.auraPoints} ✨", style: const TextStyle(fontWeight: FontWeight.bold)))]), const SizedBox(height: 20), GlassPanel(child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Biofeedback", style: TextStyle(fontSize: 12, color: Colors.white54)), Icon(Icons.circle, size: 8, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale()]), const SizedBox(height: 10), SliderTheme(data: SliderThemeData(trackHeight: 6, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10), activeTrackColor: state.moodColor, thumbColor: Colors.white), child: Slider(value: state.currentStress, onChanged: (v) => state.updateStress(v)))]),), const SizedBox(height: 20), if (state.visibleFeed.isEmpty) const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)), const SizedBox(height: 100)]).animate().fadeIn()); }
   Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) { return Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(glow: item.isLiked, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]), const SizedBox(height: 15), AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Odstraněno z deníku" : "Uloženo do Deníku vděčnosti"))); }), IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))), GestureDetector(onLongPress: () => state.dischargePrayer(item.id), child:  AnimatedContainer(duration: 500.ms, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: item.isLiked ? [state.moodColor, Colors.purple] : [Colors.white10, Colors.white10]), borderRadius: BorderRadius.circular(15)), child: Center(child: item.isLiked ? const Text("ODESLÁNO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.white)) : const Text("PODRŽET", style: TextStyle(fontSize: 10, color: Colors.white54)))))])]))); }
   void _showReportSheet(BuildContext context, AppState state, String id) { showModalBottomSheet(context: context, backgroundColor: const Color(0xFF101015), builder: (ctx) => Container(padding: const EdgeInsets.all(20), child: Column(mainAxisSize: MainAxisSize.min, children: [const Text("Nahlásit příspěvek", style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 20), ListTile(leading: const Icon(Icons.warning, color: Colors.red), title: const Text("Nenávistný projev", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.block, color: Colors.orange), title: const Text("Spam nebo reklama", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); }), ListTile(leading: const Icon(Icons.sentiment_very_dissatisfied, color: Colors.blue), title: const Text("Negativní energie", style: TextStyle(color: Colors.white)), onTap: () { state.reportPost(id); Navigator.pop(context); })]))); }
 }
 
-// B. JOURNEY
-class JourneyScreen extends StatelessWidget { const JourneyScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(children: [const SizedBox(height: 20), Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: Row(children: [Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(false), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: !state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Mapa Cesty", style: TextStyle(color: Colors.white)))))), Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(true), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Můj Deník", style: TextStyle(color: Colors.white))))))])), const SizedBox(height: 30), if (!state.showJournal) ...[SizedBox(height: 300, child: Stack(alignment: Alignment.center, children: [Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))), Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05)).shimmer(duration: 2000.ms, color: Colors.white)])), GlassPanel(glow: true, child: Column(children: [Text("Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)), Text(state.getLevelData(state.level).title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)), const SizedBox(height: 10), Text(state.getLevelData(state.level).description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70))])), const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20), _buildNode(context, 10, "Strážce", false, state), _buildLine(), _buildNode(context, 5, "Hledač", true, state), _buildLine(active: true), _buildNode(context, 1, "Poutník", true, state)] else ...[if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Tvůj deník vděčnosti je prázdný.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38))), ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Uloženo od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Tvá reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Text(n, style: const TextStyle(color: Colors.white)))).toList())]))))], const SizedBox(height: 100)]).animate().scale()); }
-  Widget _buildNode(BuildContext context, int lvl, String title, bool unlocked, AppState state) { return Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16))]); }
+// B. JOURNEY & JOURNAL
+class JourneyScreen extends StatelessWidget { const JourneyScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(children: [const SizedBox(height: 20), Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: Row(children: [Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(false), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: !state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Mapa Cesty", style: TextStyle(color: Colors.white)))))), Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(true), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Můj Deník", style: TextStyle(color: Colors.white))))))])), const SizedBox(height: 30), if (!state.showJournal) ...[SizedBox(height: 300, child: Stack(alignment: Alignment.center, children: [Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))), Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05)).shimmer(duration: 3000.ms, color: Colors.white)])), GlassPanel(glow: true, child: Column(children: [Text("Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)), Text(state.getLevelData(state.level).title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)), const SizedBox(height: 10), Text(state.getLevelData(state.level).description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${state.getLevelData(state.level).perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))])), const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20), _buildNode(context, 30, state.getLevelData(30).title, false, state), _buildLine(), _buildNode(context, 20, state.getLevelData(20).title, false, state), _buildLine(), _buildNode(context, 10, state.getLevelData(10).title, false, state), _buildLine(), _buildNode(context, 5, state.getLevelData(5).title, true, state), _buildLine(active: true), _buildNode(context, 1, state.getLevelData(1).title, true, state)] else ...[if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Tvůj deník vděčnosti je prázdný.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38))), ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Uloženo od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Tvá reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Text(n, style: const TextStyle(color: Colors.white)))).toList())]))))], const SizedBox(height: 100)]).animate().scale()); }
+  Widget _buildNode(BuildContext context, int lvl, String title, bool unlocked, AppState state) { return Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Expanded(child: Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)))]); }
   Widget _buildLine({bool active = false}) { return Container(margin: const EdgeInsets.only(left: 19, top: 5, bottom: 5), width: 2, height: 30, color: active ? Colors.white54 : Colors.white10); }
   void _addNoteDialog(BuildContext context, AppState state, String id) { TextEditingController ctrl = TextEditingController(); showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: const Color(0xFF101015), title: const Text("Reflexe", style: TextStyle(color: Colors.white)), content: TextField(controller: ctrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Co tě na tom oslovilo?", hintStyle: TextStyle(color: Colors.white38))), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Zrušit")), TextButton(onPressed: () { if(ctrl.text.isNotEmpty) { state.addPrivateNote(id, ctrl.text); Navigator.pop(ctx); }}, child: const Text("Uložit"))])); }
 }
@@ -222,53 +292,14 @@ class InsightsScreen extends StatelessWidget {
         const SizedBox(height: 20), Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)), 
         const Text("Analýza dopadu modlitby (Real-time data)", style: TextStyle(color: Colors.white54)), const SizedBox(height: 30),
         
-        // 1. PRE/POST PRAYER EFFECT
         GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("Efekt Modlitby (Před vs. Po)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-          const SizedBox(height: 10),
-          const Text("Naměřený pokles stresu po interakci.", style: TextStyle(color: Colors.white38, fontSize: 12)),
-          const SizedBox(height: 20),
-          SizedBox(height: 150, child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(7, (i) {
-              return Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                  Container(width: 12, height: state.moodBefore[i] * 100, color: Colors.red.withValues(alpha: 0.5)),
-                  const SizedBox(width: 4),
-                  Container(width: 12, height: state.moodAfter[i] * 100, color: Colors.green),
-                ]),
-                const SizedBox(height: 5),
-                Text("D${i+1}", style: const TextStyle(fontSize: 10, color: Colors.white38))
-              ]);
-            })
-          )),
-          const SizedBox(height: 15),
-          const Row(children: [
-            Icon(Icons.trending_down, color: Colors.green), SizedBox(width: 10),
-            Text("Průměrný pokles napětí o 42%", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))
-          ])
+          const Text("Efekt Modlitby (Před vs. Po)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 20),
+          SizedBox(height: 150, child: Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceAround, children: List.generate(7, (i) { return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Container(width: 12, height: state.moodBefore[i] * 100, color: Colors.red.withValues(alpha: 0.5)), const SizedBox(width: 4), Container(width: 12, height: state.moodAfter[i] * 100, color: Colors.green)]), const SizedBox(height: 5), Text("D${i+1}", style: const TextStyle(fontSize: 10, color: Colors.white38))]); }))),
+          const SizedBox(height: 15), const Row(children: [Icon(Icons.trending_down, color: Colors.green), SizedBox(width: 10), Text("Průměrný pokles napětí o 42%", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))])
         ])),
         const SizedBox(height: 20),
-
-        // 2. EMOTIONAL SPECTRUM
-        GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text("Psychologický Profil Komunity", style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 15),
-          ...state.emotionDistribution.entries.map((e) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(e.key, style: const TextStyle(fontSize: 12)), Text("${(e.value * 100).toInt()}%", style: TextStyle(color: state.moodColor))]),
-            const SizedBox(height: 5),
-            LinearProgressIndicator(value: e.value, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 6, borderRadius: BorderRadius.circular(5))
-          ])))
-        ])),
-        
-        const SizedBox(height: 20),
-        
-        // 3. DID YOU KNOW (Research Fact)
-        Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.blue.withValues(alpha: 0.3))), child: const Row(children: [
-          Icon(Icons.lightbulb, color: Colors.blue), SizedBox(width: 15),
-          Expanded(child: Text("Věděli jste? Studie z roku 2024 potvrzují, že sdílená intence snižuje pocit osamělosti o 60% během prvních 3 týdnů.", style: TextStyle(fontSize: 12, color: Colors.white70)))
-        ])),
+        GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Psychologický Profil", style: TextStyle(fontWeight: FontWeight.bold)), const SizedBox(height: 15), ...state.emotionDistribution.entries.map((e) => Padding(padding: const EdgeInsets.only(bottom: 10), child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(e.key, style: const TextStyle(fontSize: 12)), Text("${(e.value * 100).toInt()}%", style: TextStyle(color: state.moodColor))]), const SizedBox(height: 5), LinearProgressIndicator(value: e.value, backgroundColor: Colors.white10, color: state.moodColor, minHeight: 6, borderRadius: BorderRadius.circular(5))])))])),
+        const SizedBox(height: 20), Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.blue.withValues(alpha: 0.3))), child: const Row(children: [Icon(Icons.lightbulb, color: Colors.blue), SizedBox(width: 15), Expanded(child: Text("Sdílená intence snižuje pocit osamělosti o 60%.", style: TextStyle(fontSize: 12, color: Colors.white70)))])),
         const SizedBox(height: 100),
       ]));
   }
