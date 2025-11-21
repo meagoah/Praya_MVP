@@ -16,7 +16,12 @@ class MainLayout extends StatelessWidget {
   const MainLayout({super.key});
 
   void _openAura(BuildContext context) {
-    showModalBottomSheet(context: context, backgroundColor: Colors.transparent, isScrollControlled: true, builder: (ctx) => const AuraModal());
+    showModalBottomSheet(
+      context: context, 
+      backgroundColor: Colors.transparent, 
+      isScrollControlled: true, 
+      builder: (ctx) => const AuraModal()
+    );
   }
 
   @override
@@ -37,35 +42,46 @@ class MainLayout extends StatelessWidget {
           SafeArea(child: IndexedStack(index: state.navIndex, children: pages)),
           Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
           
-          // --- AURA AI TLAČÍTKO (UPDATED) ---
-Positioned(
+          // --- AURA AI ORB (SAKRÁLNÍ DESIGN) ---
+          Positioned(
             bottom: 120, 
             right: 20,
             child: GestureDetector(
-              onTap: () => _openAura(context),
+              onTap: () {
+                HapticFeedback.mediumImpact();
+                _openAura(context);
+              },
+              // Místo FAB používáme vlastní Container pro absolutní kontrolu nad stíny
               child: Container(
                 width: 60, 
                 height: 60,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: Colors.black, // Temné jádro
-                  border: Border.all(color: state.moodColor.withValues(alpha: 0.5), width: 1), // Jemný okraj
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                  // Statický základní stín
                   boxShadow: [
-                    // Statický jemný stín pro hloubku
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.8), blurRadius: 10, offset: const Offset(0, 4))
+                    BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 5))
                   ]
                 ),
-                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 28),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 26),
               )
-              .animate(onPlay: (c) => c.repeat(reverse: true)) // Nekonečný dech
+              .animate(onPlay: (c) => c.repeat(reverse: true)) // Nekonečná smyčka
               .boxShadow(
-                duration: 4000.ms, // 4 sekundy = velmi pomalý, uklidňující dech
-                curve: Curves.easeInOutSine, // Organická křivka (žádné ostré hrany)
-                begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.0), blurRadius: 0, spreadRadius: 0),
-                end: BoxShadow(color: state.moodColor.withValues(alpha: 0.3), blurRadius: 30, spreadRadius: 10), // Rozpínání aury
-              )
-              .animate() // Separátní animace pro ikonu uvnitř
-              .shimmer(duration: 5000.ms, color: Colors.white.withValues(alpha: 0.3), angle: 0.5), // Občasný "odlesk" světla na ikoně
+                // TOTO JE TA MAGIE: Animujeme POUZE stín (záři), nikoliv velikost tlačítka
+                duration: 4000.ms, // 4 sekundy = velmi pomalý dech
+                curve: Curves.easeInOutSine, // Organický průběh
+                begin: BoxShadow(
+                  color: state.moodColor.withValues(alpha: 0.0), // Začíná bez záře
+                  blurRadius: 0,
+                  spreadRadius: 0,
+                ),
+                end: BoxShadow(
+                  color: state.moodColor.withValues(alpha: 0.6), // Končí silnou září
+                  blurRadius: 30, // Rozmazání do dálky
+                  spreadRadius: 5, // Rozšíření
+                ),
+              ),
             ),
           )
         ],
