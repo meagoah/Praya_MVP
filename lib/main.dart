@@ -43,9 +43,9 @@ class CharityProject {
 
 class LevelInfo {
   final String title;
-  final String description;
-  final String perk;
-  LevelInfo(this.title, this.description, this.perk);
+  final String subtitle; // Lore description
+  final String perk;     // Odemčená funkčnost
+  LevelInfo(this.title, this.subtitle, this.perk);
 }
 
 // --- 2. APP STATE ---
@@ -62,7 +62,7 @@ class AppState extends ChangeNotifier {
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
 
-  // INSIGHTS DATA
+  // DATA PRO INSIGHTS
   final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
   final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
   final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
@@ -81,53 +81,86 @@ class AppState extends ChangeNotifier {
 
   List<String> chatHistory = ["Aura: Vítám tě. Cítím z tebe dnes napětí. Jak ti mohu posloužit?"];
 
-  // --- UPDATED MOOD COLORS (SOFTER) ---
+  // THEME COLORS
   Color get moodColor {
     Color base;
     switch (faith) {
-      case FaithType.christian: base = const Color(0xFFFFC107); // Soft Amber
-      case FaithType.muslim: base = const Color(0xFF4CAF50); // Soft Green
-      case FaithType.atheist: base = const Color(0xFF26A69A); // Soft Teal
-      default: base = const Color(0xFF29B6F6); // Soft Sky Blue
+      case FaithType.christian: base = const Color(0xFFFFC107); // Amber
+      case FaithType.muslim: base = const Color(0xFF4CAF50); // Green
+      case FaithType.atheist: base = const Color(0xFF26A69A); // Teal
+      default: base = const Color(0xFF29B6F6); // Cyan
     }
-    // Interpolace do jemné terakoty místo krvavé červené
     return Color.lerp(base, const Color(0xFFE57373), currentStress)!;
   }
   
   List<FeedItem> get savedPosts => feed.where((i) => i.isSaved && !i.isHidden).toList();
   List<FeedItem> get visibleFeed => feed.where((i) => !i.isHidden).toList();
 
-  // --- EXPANDED GAMIFICATION LEVELS ---
-  LevelInfo getLevelData(int targetLevel) {
-    switch (faith) {
-      case FaithType.christian:
-        if (targetLevel <= 1) return LevelInfo("Katechumen", "Tvá cesta teprve začíná. Učíš se naslouchat.", "Feed");
-        if (targetLevel <= 3) return LevelInfo("Poutník", "Vydal ses na cestu modlitby a služby.", "Překlady");
-        if (targetLevel <= 5) return LevelInfo("Učedník", "Pravidelně se modlíš a pomáháš bližním.", "Statistiky");
-        if (targetLevel <= 10) return LevelInfo("Strážce Víry", "Jsi oporou komunity.", "Aura Voice");
-        if (targetLevel <= 20) return LevelInfo("Misionář Naděje", "Šíříš světlo i za hranice své bubliny.", "Global Impact");
-        if (targetLevel <= 30) return LevelInfo("Tichý Mentor", "Tvá moudrost inspiruje nové poutníky.", "Private Circles");
-        return LevelInfo("Apoštol Lásky", "Tvá víra hory přenáší.", "Legacy Mode");
-        
-      case FaithType.atheist:
-        if (targetLevel <= 1) return LevelInfo("Pozorovatel", "Zkoumáš svět a hledáš souvislosti.", "Feed");
-        if (targetLevel <= 3) return LevelInfo("Analytik", "Chápeš sílu lidské psychiky.", "Studie");
-        if (targetLevel <= 5) return LevelInfo("Empatik", "Cítíš s ostatními a podporuješ je.", "Tracker");
-        if (targetLevel <= 10) return LevelInfo("Humanista", "Aktivně měníš svět k lepšímu.", "Impact Report");
-        if (targetLevel <= 20) return LevelInfo("Filantrop Myšlenky", "Tvé činy mají reálný dopad.", "Allocation Power");
-        if (targetLevel <= 30) return LevelInfo("Architekt Společnosti", "Buduješ mosty mezi lidmi.", "Trend Prediction");
-        return LevelInfo("Vizjonář", "Tvoříš budoucnost lidstva.", "Global Influence");
-
-      default: // Universal
-        if (targetLevel <= 1) return LevelInfo("Probuzený", "Otevřel jsi oči novému vnímání.", "Feed");
-        if (targetLevel <= 3) return LevelInfo("Hledač Světla", "Aktivně vyhledáváš spojení.", "Aura");
-        if (targetLevel <= 5) return LevelInfo("Světlonoš", "Tvá energie inspiruje ostatní.", "Advanced Stats");
-        if (targetLevel <= 10) return LevelInfo("Strážce Frekvence", "Udržuješ harmonii v chaosu.", "Healing Mode");
-        if (targetLevel <= 20) return LevelInfo("Tkadlec Osudu", "Vidíš souvislosti, které jiným unikají.", "Deep Connect");
-        if (targetLevel <= 30) return LevelInfo("Vědomý Tvůrce", "Tvé intence mění realitu.", "Group Flow");
-        return LevelInfo("Kosmické Vědomí", "Jsi jedno s celkem.", "Avatar Status");
+  // --- FULL PROGRESSION TREES (THE LORE) ---
+  final Map<FaithType, Map<int, LevelInfo>> _progressionTrees = {
+    FaithType.christian: {
+      1: LevelInfo("Katechumen", "Tvá cesta začíná nasloucháním.", "Základní Feed"),
+      2: LevelInfo("Hledající", "První kroky v modlitbě.", "Deník Vděčnosti"),
+      3: LevelInfo("Poutník", "Kráčíš po cestě světla.", "Překlady Modliteb"),
+      5: LevelInfo("Učedník", "Pravidelnost přináší ovoce.", "Detailní Statistiky"),
+      10: LevelInfo("Strážce Víry", "Jsi oporou pro slabší.", "Aura AI Voice"),
+      15: LevelInfo("Diakon Naděje", "Sloužíš komunitě.", "Prioritní Podpora"),
+      20: LevelInfo("Presbyter", "Tvá moudrost vede ostatní.", "Vytváření Skupin"),
+      30: LevelInfo("Misionář", "Šíříš světlo do světa.", "Global Impact"),
+      40: LevelInfo("Biskup Srdcí", "Dohlížíš na stádo.", "Mentorství"),
+      50: LevelInfo("Apoštol Lásky", "Tvá víra hory přenáší.", "Legacy Status"),
+    },
+    FaithType.atheist: {
+      1: LevelInfo("Pozorovatel", "Zkoumáš svět dat.", "Data Feed"),
+      2: LevelInfo("Skeptik", "Ptáš se a ověřuješ.", "Deník Myšlenek"),
+      3: LevelInfo("Hledač Faktů", "Nacházíš souvislosti.", "Překlady Idejí"),
+      5: LevelInfo("Analytik", "Chápeš vzorce mysli.", "Psycho-Stats"),
+      10: LevelInfo("Empatik", "Cítíš, co říkají data.", "AI Psycholog"),
+      15: LevelInfo("Humanista", "Lidé jsou pro tebe prioritou.", "Impact Report"),
+      20: LevelInfo("Filozof Bytí", "Hloubáš nad smyslem.", "Think Tank"),
+      30: LevelInfo("Architekt", "Stavíš mosty ve společnosti.", "Trend Prediction"),
+      40: LevelInfo("Strážce Logiky", "Chráníš rozum a cit.", "Moderace"),
+      50: LevelInfo("Vizionář", "Vidíš budoucnost lidstva.", "Global Influence"),
+    },
+    FaithType.muslim: {
+      1: LevelInfo("Hledající (Talib)", "Hledáš pravdu.", "Dua Feed"),
+      2: LevelInfo("Probuzený", "Otevíráš oči srdce.", "Sabr Tracker"),
+      3: LevelInfo("Poutník (Salik)", "Kráčíš po přímé stezce.", "Překlady"),
+      5: LevelInfo("Služebník (Abid)", "Sloužíš stvořiteli.", "Ibadah Stats"),
+      10: LevelInfo("Pamatující (Zakir)", "Tvé srdce nezapomíná.", "AI Imam"),
+      15: LevelInfo("Chudý (Faqir)", "Bohatý v duchu.", "Charity Boost"),
+      20: LevelInfo("Vědoucí (Alim)", "Znalost je tvé světlo.", "Halaqa Groups"),
+      30: LevelInfo("Přítel (Wali)", "Jsi blízko zdroji.", "Barakah Mode"),
+      40: LevelInfo("Znalec (Arif)", "Vidíš skryté.", "Spiritual Guide"),
+      50: LevelInfo("Dokonalý (Insan)", "Zrcadlíš světlo.", "Nur Status"),
+    },
+    FaithType.universal: { // Default
+      1: LevelInfo("Probuzený", "Otevřel jsi oči novému vnímání.", "Řeka Naděje"),
+      2: LevelInfo("Novic", "Učíš se pracovat s energií.", "Osobní Deník"),
+      3: LevelInfo("Hledač Světla", "Aktivně vyhledáváš spojení.", "Univerzální Překlad"),
+      5: LevelInfo("Světlonoš", "Tvá energie inspiruje ostatní.", "Aura Analytika"),
+      10: LevelInfo("Strážce Frekvence", "Udržuješ harmonii v chaosu.", "Healing AI"),
+      15: LevelInfo("Alchymista Duše", "Měníš bolest v sílu.", "Deep Impact"),
+      20: LevelInfo("Tkadlec Osudu", "Vidíš souvislosti, které jiným unikají.", "Circle Maker"),
+      30: LevelInfo("Mistr Přítomnosti", "Jsi tady a teď.", "Global Pulse"),
+      40: LevelInfo("Vědomý Tvůrce", "Tvé intence mění realitu.", "Reality Shift"),
+      50: LevelInfo("Kosmické Vědomí", "Jsi jedno s celkem.", "Avatar"),
     }
+  };
+
+  LevelInfo getLevelData(int targetLevel) {
+    // Fallback pro univerzální víru, pokud není specifická
+    var tree = _progressionTrees[faith] ?? _progressionTrees[FaithType.universal]!;
+    
+    // Najdi nejbližší definovanou úroveň (pokud jsme např. lvl 7, vezmi data pro lvl 5)
+    var definedLevels = tree.keys.toList()..sort();
+    int bestMatch = definedLevels.lastWhere((k) => k <= targetLevel, orElse: () => 1);
+    
+    return tree[bestMatch]!;
   }
+  
+  // Vrací seznam milníků pro zobrazení na mapě
+  List<int> get milestones => [50, 40, 30, 20, 15, 10, 5, 3, 2, 1];
 
   void login(String name, FaithType selectedFaith) { nickname = name; faith = selectedFaith; isLoggedIn = true; notifyListeners(); }
   void setIndex(int i) { navIndex = i; notifyListeners(); }
@@ -152,50 +185,19 @@ class AppState extends ChangeNotifier {
   }
 }
 
-// --- 3. UI COMPONENTS (SOFT DESIGN) ---
+// --- 3. UI COMPONENTS ---
 
 class LivingBackground extends StatelessWidget {
   const LivingBackground({super.key});
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    return Stack(
-      children: [
-        Container(color: const Color(0xFF080810)), // Slightly lighter black
-        // 1. Soft Primary Light
-        AnimatedPositioned(
-          duration: 3000.ms, // Zpomaleno pro uklidnění
-          curve: Curves.easeInOut,
-          top: state.currentStress * -30, 
-          left: -50,
-          child: AnimatedContainer(
-            duration: 2000.ms,
-            width: 600, height: 600,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle, 
-              // Snížená opacity pro jemnost
-              color: state.moodColor.withValues(alpha: 0.08), 
-              boxShadow: [BoxShadow(color: state.moodColor.withValues(alpha: 0.15), blurRadius: 150)]
-            ),
-          ).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.1, 1.1), duration: 6000.ms),
-        ),
-        // 2. Soft Secondary Light (Purple)
-        Positioned(
-          bottom: -150, right: -100,
-          child: AnimatedContainer(
-            duration: 2000.ms,
-            width: 500, height: 500,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle, 
-              color: Colors.deepPurple.withValues(alpha: 0.05), 
-              boxShadow: [BoxShadow(color: Colors.deepPurple.withValues(alpha: 0.1), blurRadius: 180)]
-            ),
-          ).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2), duration: 7000.ms),
-        ),
-        // Grain Texture (Atmosphere)
+    return Stack(children: [
+        Container(color: const Color(0xFF05050A)),
+        AnimatedPositioned(duration: 3000.ms, top: state.currentStress * -30, left: -50, child: AnimatedContainer(duration: 2000.ms, width: 600, height: 600, decoration: BoxDecoration(shape: BoxShape.circle, color: state.moodColor.withValues(alpha: 0.08), boxShadow: [BoxShadow(color: state.moodColor.withValues(alpha: 0.15), blurRadius: 150)])).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.1, 1.1), duration: 6000.ms)),
+        Positioned(bottom: -150, right: -100, child: AnimatedContainer(duration: 2000.ms, width: 500, height: 500, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.deepPurple.withValues(alpha: 0.05), boxShadow: [BoxShadow(color: Colors.deepPurple.withValues(alpha: 0.1), blurRadius: 180)])).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.2, 1.2), duration: 7000.ms)),
         Opacity(opacity: 0.02, child: Container(decoration: const BoxDecoration(image: DecorationImage(image: NetworkImage("https://www.transparenttextures.com/patterns/stardust.png"), repeat: ImageRepeat.repeat)))),
-      ],
-    );
+    ]);
   }
 }
 
@@ -208,20 +210,7 @@ class GlassPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), // Mírně snížený blur
-          child: AnimatedContainer(
-            duration: 500.ms, padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white.withValues(alpha: opacity), borderRadius: BorderRadius.circular(24), border: Border.all(color: glow ? state.moodColor.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05)), boxShadow: glow ? [BoxShadow(color: state.moodColor.withValues(alpha: 0.1), blurRadius: 20)] : []),
-            child: child,
-          ),
-        ),
-      ),
-    );
+    return GestureDetector(onTap: onTap, child: ClipRRect(borderRadius: BorderRadius.circular(24), child: BackdropFilter(filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12), child: AnimatedContainer(duration: 500.ms, padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Colors.white.withValues(alpha: opacity), borderRadius: BorderRadius.circular(24), border: Border.all(color: glow ? state.moodColor.withValues(alpha: 0.3) : Colors.white.withValues(alpha: 0.05)), boxShadow: glow ? [BoxShadow(color: state.moodColor.withValues(alpha: 0.1), blurRadius: 20)] : []), child: child))));
   }
 }
 
@@ -232,12 +221,8 @@ class PrayaLogo extends StatelessWidget {
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
     return Column(mainAxisSize: MainAxisSize.min, children: [
-        Stack(alignment: Alignment.center, children: [
-            Icon(Icons.water_drop, size: size, color: state.moodColor.withValues(alpha: 0.8)).animate(onPlay: (c)=>c.repeat(reverse: true)).shimmer(duration: 3000.ms, color: Colors.white54),
-            Icon(Icons.water_drop_outlined, size: size, color: Colors.white.withValues(alpha: 0.3)),
-          ]),
-        const SizedBox(height: 5),
-        Text("PRAYA", style: GoogleFonts.cinzel(fontSize: size * 0.5, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.white)),
+        Stack(alignment: Alignment.center, children: [Icon(Icons.water_drop, size: size, color: state.moodColor.withValues(alpha: 0.8)).animate(onPlay: (c)=>c.repeat(reverse: true)).shimmer(duration: 3000.ms, color: Colors.white54), Icon(Icons.water_drop_outlined, size: size, color: Colors.white.withValues(alpha: 0.3))]),
+        const SizedBox(height: 5), Text("PRAYA", style: GoogleFonts.cinzel(fontSize: size * 0.5, letterSpacing: 4, fontWeight: FontWeight.bold, color: Colors.white)),
     ]);
   }
 }
@@ -272,9 +257,38 @@ class HomeFeedScreen extends StatelessWidget { const HomeFeedScreen({super.key})
 }
 
 // B. JOURNEY & JOURNAL
-class JourneyScreen extends StatelessWidget { const JourneyScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(children: [const SizedBox(height: 20), Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: Row(children: [Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(false), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: !state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Mapa Cesty", style: TextStyle(color: Colors.white)))))), Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(true), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Můj Deník", style: TextStyle(color: Colors.white))))))])), const SizedBox(height: 30), if (!state.showJournal) ...[SizedBox(height: 300, child: Stack(alignment: Alignment.center, children: [Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))), Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05)).shimmer(duration: 3000.ms, color: Colors.white)])), GlassPanel(glow: true, child: Column(children: [Text("Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)), Text(state.getLevelData(state.level).title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)), const SizedBox(height: 10), Text(state.getLevelData(state.level).description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${state.getLevelData(state.level).perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))])), const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20), _buildNode(context, 30, state.getLevelData(30).title, false, state), _buildLine(), _buildNode(context, 20, state.getLevelData(20).title, false, state), _buildLine(), _buildNode(context, 10, state.getLevelData(10).title, false, state), _buildLine(), _buildNode(context, 5, state.getLevelData(5).title, true, state), _buildLine(active: true), _buildNode(context, 1, state.getLevelData(1).title, true, state)] else ...[if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Tvůj deník vděčnosti je prázdný.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38))), ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Uloženo od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Tvá reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Text(n, style: const TextStyle(color: Colors.white)))).toList())]))))], const SizedBox(height: 100)]).animate().scale()); }
-  Widget _buildNode(BuildContext context, int lvl, String title, bool unlocked, AppState state) { return Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Expanded(child: Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)))]); }
-  Widget _buildLine({bool active = false}) { return Container(margin: const EdgeInsets.only(left: 19, top: 5, bottom: 5), width: 2, height: 30, color: active ? Colors.white54 : Colors.white10); }
+class JourneyScreen extends StatelessWidget { const JourneyScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); 
+    LevelInfo currentLvl = state.getLevelData(state.level);
+    return SingleChildScrollView(padding: const EdgeInsets.all(25), child: Column(children: [const SizedBox(height: 20), Container(padding: const EdgeInsets.all(5), decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)), child: Row(children: [Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(false), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: !state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Mapa Cesty", style: TextStyle(color: Colors.white)))))), Expanded(child: GestureDetector(onTap: () => state.toggleJournalView(true), child: Container(padding: const EdgeInsets.symmetric(vertical: 10), decoration: BoxDecoration(color: state.showJournal ? Colors.white10 : Colors.transparent, borderRadius: BorderRadius.circular(15)), child: const Center(child: Text("Můj Deník", style: TextStyle(color: Colors.white))))))])), const SizedBox(height: 30), if (!state.showJournal) ...[SizedBox(height: 300, child: Stack(alignment: Alignment.center, children: [Container(width: 250, height: 250, decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white.withValues(alpha: 0.05), width: 1))), Icon(Icons.park, size: 180, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale(begin: const Offset(1,1), end: const Offset(1.05, 1.05)).shimmer(duration: 3000.ms, color: Colors.white)])), GlassPanel(glow: true, child: Column(children: [Text("Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)), Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)), const SizedBox(height: 10), Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Odemčeno: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))])), const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20), 
+    
+    // DYNAMICALLY GENERATED MAP
+    ...state.milestones.map((milestone) {
+        var data = state.getLevelData(milestone);
+        bool unlocked = state.level >= milestone;
+        bool isCurrent = state.level == milestone;
+        return Column(children: [
+          _buildNode(context, milestone, data.title, unlocked, isCurrent, state, data.perk),
+          if (milestone != 1) _buildLine(active: unlocked)
+        ]);
+    }),
+    
+    const SizedBox(height: 100)] else ...[if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Tvůj deník vděčnosti je prázdný.", textAlign: TextAlign.center, style: TextStyle(color: Colors.white38))), ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text("Uloženo od: ${item.author}", style: const TextStyle(fontSize: 10, color: Colors.white54)), const SizedBox(height: 10), Text(item.originalText, style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.white70)), const Divider(color: Colors.white10, height: 30), const Text("Tvá reflexe:", style: TextStyle(color: Colors.amber, fontSize: 12, fontWeight: FontWeight.bold)), const SizedBox(height: 5), item.privateNotes.isEmpty ? GestureDetector(onTap: () => _addNoteDialog(context, state, item.id), child: const Text("+ Přidat poznámku", style: TextStyle(color: Colors.white38))) : Column(children: item.privateNotes.map((n) => Padding(padding: const EdgeInsets.only(bottom: 5), child: Text(n, style: const TextStyle(color: Colors.white)))).toList())]))))], const SizedBox(height: 100)]).animate().scale()); }
+  
+  Widget _buildNode(BuildContext context, int lvl, String title, bool unlocked, bool isCurrent, AppState state, String perk) { 
+    return GlassPanel(
+      opacity: unlocked ? 0.08 : 0.02,
+      child: Row(children: [
+        Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), 
+        const SizedBox(width: 15), 
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)),
+          Text("Level $lvl • Odměna: $perk", style: const TextStyle(color: Colors.white38, fontSize: 10)),
+          if (isCurrent) Text("SOUČASNÁ ÚROVEŇ", style: TextStyle(color: state.moodColor, fontSize: 10, fontWeight: FontWeight.bold))
+        ]))
+      ])
+    ); 
+  }
+  Widget _buildLine({bool active = false}) { return Container(margin: const EdgeInsets.symmetric(vertical: 5), width: 2, height: 20, color: active ? Colors.white54 : Colors.white10); }
   void _addNoteDialog(BuildContext context, AppState state, String id) { TextEditingController ctrl = TextEditingController(); showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: const Color(0xFF101015), title: const Text("Reflexe", style: TextStyle(color: Colors.white)), content: TextField(controller: ctrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Co tě na tom oslovilo?", hintStyle: TextStyle(color: Colors.white38))), actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Zrušit")), TextButton(onPressed: () { if(ctrl.text.isNotEmpty) { state.addPrivateNote(id, ctrl.text); Navigator.pop(ctx); }}, child: const Text("Uložit"))])); }
 }
 
@@ -291,7 +305,6 @@ class InsightsScreen extends StatelessWidget {
     return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         const SizedBox(height: 20), Text("Vhledy", style: GoogleFonts.cinzel(fontSize: 28)), 
         const Text("Analýza dopadu modlitby (Real-time data)", style: TextStyle(color: Colors.white54)), const SizedBox(height: 30),
-        
         GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text("Efekt Modlitby (Před vs. Po)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), const SizedBox(height: 20),
           SizedBox(height: 150, child: Row(crossAxisAlignment: CrossAxisAlignment.end, mainAxisAlignment: MainAxisAlignment.spaceAround, children: List.generate(7, (i) { return Column(mainAxisAlignment: MainAxisAlignment.end, children: [Row(crossAxisAlignment: CrossAxisAlignment.end, children: [Container(width: 12, height: state.moodBefore[i] * 100, color: Colors.red.withValues(alpha: 0.5)), const SizedBox(width: 4), Container(width: 12, height: state.moodAfter[i] * 100, color: Colors.green)]), const SizedBox(height: 5), Text("D${i+1}", style: const TextStyle(fontSize: 10, color: Colors.white38))]); }))),
