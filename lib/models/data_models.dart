@@ -12,18 +12,25 @@ class FeedItem {
   int likes;
   bool isLiked;
   bool isSaved;
-  bool isHidden; 
+  bool isHidden;
   List<String> privateNotes;
-  Color artSeedColor; 
+  Color artSeedColor; // Pro generativní umění
 
   FeedItem({
-    required this.id, required this.author, required this.country, 
-    required this.originalText, required this.translatedText, 
-    this.likes = 0, this.isLiked = false, this.showTranslation = false,
-    this.isSaved = false, this.isHidden = false,
+    required this.id,
+    required this.author,
+    required this.country,
+    required this.originalText,
+    required this.translatedText,
+    this.likes = 0,
+    this.isLiked = false,
+    this.showTranslation = false,
+    this.isSaved = false,
+    this.isHidden = false,
     List<String>? privateNotes,
     Color? artSeedColor,
-  }) : privateNotes = privateNotes ?? [], artSeedColor = artSeedColor ?? Colors.blue;
+  })  : privateNotes = privateNotes ?? [],
+        artSeedColor = artSeedColor ?? Colors.blue;
 }
 
 class CharityProject {
@@ -32,7 +39,8 @@ class CharityProject {
   double progress;
   String raised;
   Color color;
-  CharityProject(this.title, this.description, this.progress, this.raised, this.color);
+  CharityProject(
+      this.title, this.description, this.progress, this.raised, this.color);
 }
 
 class LevelInfo {
