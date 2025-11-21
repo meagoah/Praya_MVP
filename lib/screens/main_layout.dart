@@ -36,13 +36,19 @@ class MainLayout extends StatelessWidget {
           const LivingBackground(),
           SafeArea(child: IndexedStack(index: state.navIndex, children: pages)),
           Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
+          
+          // --- AURA AI TLAČÍTKO (UPDATED) ---
           Positioned(
             bottom: 120, right: 20,
             child: FloatingActionButton(
               backgroundColor: Colors.black,
               onPressed: () => _openAura(context),
-              child: const Icon(Icons.auto_awesome, color: Colors.white).animate(onPlay: (c) => c.repeat()).shimmer(duration: 2000.ms, color: state.moodColor),
-            ).animate().scale(duration: 400.ms, curve: Curves.elasticOut),
+              // ZMĚNA ZDE: Místo .shimmer() používáme .scale() a .fade() pro efekt dýchání
+              child: const Icon(Icons.auto_awesome, color: Colors.white)
+                  .animate(onPlay: (c) => c.repeat(reverse: true)) // Opakuj tam a zpět (nádech/výdech)
+                  .scale(duration: 3000.ms, begin: const Offset(1.0, 1.0), end: const Offset(1.2, 1.2)) // Velmi pomalé zvětšení
+                  .fade(duration: 3000.ms, begin: 0.7, end: 1.0), // Jemné zjasnění
+            ).animate().scale(duration: 400.ms, curve: Curves.elasticOut), // Úvodní animace při startu
           )
         ],
       ),
