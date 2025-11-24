@@ -84868,7 +84868,7 @@ $1(a){return A.aEC()},
 $S:533}
 A.L3.prototype={
 K(a){var s=null
-return new A.yS(B.P5,"PrayApp",A.q0(B.a8,s,s).aiA(B.CQ,B.DE,A.aIc(A.q0(B.a8,s,s).ok)),!1,s)}}
+return new A.yS(B.P5,"PRAYA v20",A.q0(B.a8,s,s).aiA(B.CQ,B.DE,A.aIc(A.q0(B.a8,s,s).ok)),!1,s)}}
 A.i6.prototype={
 I(){return"FaithType."+this.b}}
 A.j2.prototype={}
