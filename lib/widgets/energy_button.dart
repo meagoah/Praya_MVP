@@ -46,7 +46,6 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
     _particleTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (!_isPressed) return;
       setState(() {
-        // Vytvoří částici na okraji, která letí dovnitř
         double angle = _rnd.nextDouble() * 2 * pi;
         double distance = 40.0 + _rnd.nextDouble() * 20;
         _particles.add(Particle(
@@ -55,7 +54,7 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
           angle: angle,
           speed: 2.0 + _rnd.nextDouble() * 2,
           size: 2.0 + _rnd.nextDouble() * 3,
-          color: widget.color.withOpacity(0.6 + _rnd.nextDouble() * 0.4)
+          color: widget.color.withValues(alpha: 0.6 + _rnd.nextDouble() * 0.4) // Opraveno
         ));
       });
     });
@@ -64,7 +63,6 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
   void _updateParticles() {
     if (_particles.isEmpty) return;
     for (var p in _particles) {
-      // Pohyb směrem ke středu (0,0)
       p.x -= cos(p.angle) * p.speed;
       p.y -= sin(p.angle) * p.speed;
       p.life -= 0.05;
@@ -74,7 +72,6 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
 
   void _explode() {
     HapticFeedback.heavyImpact();
-    // Vizuální exploze by byla řešena dalším controllerem, pro MVP stačí změna stavu v rodiči
   }
 
   void _reset() {
@@ -82,7 +79,7 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
     _particleTimer?.cancel();
     _controller.reset();
     _particles.clear();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -95,7 +92,7 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
 
   @override
   Widget build(BuildContext context) {
-    if (_isPressed) _updateParticles(); // Simple game loop in build (for MVP)
+    if (_isPressed) _updateParticles(); 
 
     return GestureDetector(
       onLongPressStart: (_) {
@@ -114,7 +111,6 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
         animation: Listenable.merge([_controller, _pulseController]),
         builder: (context, child) {
           double progress = _controller.value;
-          double scale = 1.0 - (progress * 0.1) + (_isPressed ? sin(progress * 20) * 0.02 : 0);
           
           return CustomPaint(
             painter: ParticlePainter(_particles),
@@ -127,18 +123,18 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
                   ? LinearGradient(colors: [widget.color, Colors.purple]) 
                   : LinearGradient(
                       colors: [
-                        Colors.white.withOpacity(0.1),
-                        Colors.white.withOpacity(0.05 + (progress * 0.2))
+                        Colors.white.withValues(alpha: 0.1), // Opraveno
+                        Colors.white.withValues(alpha: 0.05 + (progress * 0.2)) // Opraveno
                       ],
                     ),
                 border: Border.all(
-                  color: widget.isCompleted ? Colors.transparent : widget.color.withOpacity(0.3 + (progress * 0.7)),
+                  color: widget.isCompleted ? Colors.transparent : widget.color.withValues(alpha: 0.3 + (progress * 0.7)), // Opraveno
                   width: 1 + (progress * 2)
                 ),
                 boxShadow: [
                   if (_isPressed || widget.isCompleted)
                     BoxShadow(
-                      color: widget.color.withOpacity(widget.isCompleted ? 0.6 : progress * 0.5),
+                      color: widget.color.withValues(alpha: widget.isCompleted ? 0.6 : progress * 0.5), // Opraveno
                       blurRadius: widget.isCompleted ? 20 : 10 + (progress * 20),
                       spreadRadius: widget.isCompleted ? 2 : progress * 5
                     )
@@ -177,7 +173,7 @@ class ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     for (var p in particles) {
-      final paint = Paint()..color = p.color.withOpacity(p.life.clamp(0.0, 1.0));
+      final paint = Paint()..color = p.color.withValues(alpha: p.life.clamp(0.0, 1.0)); // Opraveno
       canvas.drawCircle(center + Offset(p.x, p.y), p.size, paint);
     }
   }

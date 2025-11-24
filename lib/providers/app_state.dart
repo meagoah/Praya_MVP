@@ -10,10 +10,7 @@ class AppState extends ChangeNotifier {
   
   int navIndex = 0;
   int auraPoints = 2450;
-  
-  // Level se počítá dynamicky
   int get level => (auraPoints / 500).floor() + 1;
-  
   double currentStress = 0.5; 
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
@@ -27,7 +24,7 @@ class AppState extends ChangeNotifier {
     return pointsInCurrentLevel / 500.0;
   }
 
-  // --- NOTIFIKACE (Ozvěny) ---
+  // NOTIFIKACE
   List<AppNotification> notifications = [
     AppNotification(title: "Svíčka zapálena", subtitle: "Maria z Brazílie podpořila tvou modlitbu.", icon: Icons.light_mode, color: Colors.amber, timeAgo: "2m"),
     AppNotification(title: "Nový Level!", subtitle: "Dosáhl jsi úrovně Hledač.", icon: Icons.arrow_upward, color: Colors.cyan, timeAgo: "1h"),
@@ -43,12 +40,11 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Data pro Insights
+  // DATA
   final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
   final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
   final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
 
-  // Simulace trendu
   final List<List<double>> weeklyTrends = [
     [0.8, 0.2], [0.7, 0.3], [0.9, 0.1], 
     [0.6, 0.6], [0.4, 0.8], [0.3, 0.9], [0.2, 0.8] 
@@ -118,6 +114,15 @@ class AppState extends ChangeNotifier {
   List<int> get milestones => [50, 40, 30, 20, 15, 10, 5, 3, 2, 1];
 
   void login(String name, FaithType selectedFaith) { nickname = name; faith = selectedFaith; isLoggedIn = true; notifyListeners(); }
+  
+  // --- TATO METODA CHYBĚLA ---
+  void updateProfile(String name, FaithType selectedFaith) {
+    nickname = name;
+    faith = selectedFaith;
+    notifyListeners();
+  }
+  // ---------------------------
+
   void setIndex(int i) { navIndex = i; notifyListeners(); }
   void toggleJournalView(bool show) { showJournal = show; notifyListeners(); }
   void updateStress(double val) { currentStress = val; notifyListeners(); }

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+// import 'package:flutter/services.dart'; // SMAŽ TENTO ŘÁDEK (je zbytečný)
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui';
+import 'dart:ui'; // Pro ImageFilter (pokud používáš GlassPanel přímo)
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
 import '../models/data_models.dart';
-import '../widgets/energy_button.dart';
+import '../widgets/energy_button.dart'; // PŘIDEJ TENTO IMPORT!
 
 class HomeFeedScreen extends StatelessWidget {
   const HomeFeedScreen({super.key});

@@ -32,10 +32,14 @@ class SoulSignaturePainter extends CustomPainter {
           double r = (j % 2 == 0) ? radius : radius * 0.5;
           double x = center.dx + cos(angle) * r;
           double y = center.dy + sin(angle) * r;
-          if (j == 0)
+          
+          // --- OPRAVA ZDE (PŘIDÁNY ZÁVORKY {}) ---
+          if (j == 0) {
             path.moveTo(x, y);
-          else
+          } else {
             path.lineTo(x, y);
+          }
+          // ---------------------------------------
         }
         path.close();
         canvas.drawPath(path, paint);
@@ -48,8 +52,8 @@ class SoulSignaturePainter extends CustomPainter {
             canvas.drawOval(
                 Rect.fromCenter(
                     center: center +
-                        Offset(
-                            cos(angle) * radius * 0.5, sin(angle) * radius * 0.5),
+                        Offset(cos(angle) * radius * 0.5,
+                            sin(angle) * radius * 0.5),
                     width: radius / 2,
                     height: radius / 2),
                 paint);
