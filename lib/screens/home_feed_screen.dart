@@ -7,6 +7,7 @@ import 'dart:ui';
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
 import '../models/data_models.dart';
+import '../widgets/energy_button.dart';
 
 class HomeFeedScreen extends StatelessWidget {
   const HomeFeedScreen({super.key});
@@ -45,17 +46,89 @@ class HomeFeedScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) {
-    return Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(glow: item.isLiked, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]), const SizedBox(height: 15), 
-        Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))), const SizedBox(height: 15),
-        AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); }),
-          IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))),
-          GestureDetector(onLongPress: () => state.dischargePrayer(item.id), child:  AnimatedContainer(duration: 500.ms, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10), decoration: BoxDecoration(gradient: LinearGradient(colors: item.isLiked ? [state.moodColor, Colors.purple] : [Colors.white10, Colors.white10]), borderRadius: BorderRadius.circular(15)), child: Center(child: item.isLiked ? const Text("ODESLÁNO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: Colors.white)) : const Text("PODRŽET", style: TextStyle(fontSize: 10, color: Colors.white54)))))
-        ])
-      ])),
+Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 15),
+      child: GlassPanel(
+        glow: item.isLiked,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. HLAVIČKA (Autor, Země, Menu)
+            Row(children: [
+              CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))),
+              const SizedBox(width: 10),
+              Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(width: 5),
+              Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)),
+              const Spacer(),
+              if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: () => _showReportSheet(context, state, item.id),
+                child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38)
+              )
+            ]),
+
+            const SizedBox(height: 15),
+
+            // 2. GENERATIVNÍ UMĚNÍ (Soul Signature)
+            Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))),
+            
+            const SizedBox(height: 15),
+
+            // 3. TEXT A PŘEKLAD
+            AnimatedSwitcher(
+              duration: 300.ms,
+              child: Text(
+                item.showTranslation ? item.translatedText : item.originalText,
+                key: ValueKey<bool>(item.showTranslation),
+                style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70)
+              )
+            ),
+            const SizedBox(height: 10),
+            GestureDetector(
+              onTap: () => state.toggleTranslation(item.id),
+              child: Row(children: [
+                Icon(Icons.translate, size: 14, color: state.moodColor),
+                const SizedBox(width: 5),
+                Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))
+              ])
+            ),
+
+            const SizedBox(height: 20),
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 10),
+
+            // 4. AKČNÍ TLAČÍTKA (Zde je změna!)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Záložka (Deník)
+                IconButton(
+                  icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor : Colors.white54),
+                  onPressed: () { 
+                    state.toggleSave(item.id); 
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); 
+                  }
+                ),
+                // Sdílení
+                IconButton(
+                  icon: const Icon(Icons.share, color: Colors.white54),
+                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))
+                ),
+                
+                // --- NOVÉ ENERGY TLAČÍTKO (JUICY UX) ---
+                EnergyButton(
+                  color: state.moodColor,
+                  isCompleted: item.isLiked,
+                  onComplete: () => state.dischargePrayer(item.id),
+                )
+              ]
+            )
+          ]
+        ),
+      ),
     );
   }
 
