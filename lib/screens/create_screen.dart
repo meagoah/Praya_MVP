@@ -17,69 +17,89 @@ class _CreateScreenState extends State<CreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Použijeme Scaffold s průhledným pozadím. 
-    // Scaffold má vestavěnou logiku pro klávesnici (resizeToAvoidBottomInset).
+    // Získáme výšku klávesnice
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      resizeToAvoidBottomInset: true, // Toto zajistí, že se obsah posune a pak vrátí
-      body: Center(
-        child: SingleChildScrollView(
-          // Clamping physics zabrání "gumovému" efektu, který může zaseknout scroll
-          physics: const ClampingScrollPhysics(),
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.edit_note, size: 50, color: Colors.white54),
-              const SizedBox(height: 20),
-              Text("Vyslat Signál", style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white)),
-              const SizedBox(height: 40),
-              
-              GlassPanel(
-                opacity: 0.1,
-                child: TextField(
-                  controller: _ctrl,
-                  maxLines: 5,
-                  style: const TextStyle(color: Colors.white, fontSize: 18),
-                  // Přidáme Done akci pro zavření klávesnice
-                  textInputAction: TextInputAction.done,
-                  decoration: const InputDecoration(
-                    hintText: "Co tě trápí? ...",
-                    hintStyle: TextStyle(color: Colors.white30),
-                    border: InputBorder.none
+      resizeToAvoidBottomInset: false, // DŮLEŽITÉ: Zákaz automatického mačkání!
+      
+      body: SizedBox(
+        height: MediaQuery.of(context).size.height, // Fixní výška okna
+        child: Stack(
+          children: [
+            // Obsah, který se posouvá ručně pomocí Paddingu
+            Positioned.fill(
+              child: SingleChildScrollView(
+                physics: const ClampingScrollPhysics(), // Žádné pružení
+                child: Padding(
+                  // Tady manuálně odtlačíme obsah nahoru o výšku klávesnice
+                  padding: EdgeInsets.only(
+                    left: 25, 
+                    right: 25, 
+                    top: 100, 
+                    bottom: keyboardHeight > 0 ? keyboardHeight + 50 : 50
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.edit_note, size: 50, color: Colors.white54),
+                      const SizedBox(height: 20),
+                      Text("Vyslat Signál", style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white)),
+                      const SizedBox(height: 40),
+                      
+                      GlassPanel(
+                        opacity: 0.1,
+                        child: TextField(
+                          controller: _ctrl,
+                          maxLines: 5,
+                          style: const TextStyle(color: Colors.white, fontSize: 18),
+                          textInputAction: TextInputAction.done,
+                          // Když dáš "Done", skryjeme klávesnici
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
+                          decoration: const InputDecoration(
+                            hintText: "Co tě trápí? ...",
+                            hintStyle: TextStyle(color: Colors.white30),
+                            border: InputBorder.none
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 30),
+                      const Text("Jakou tíhu cítíš?", style: TextStyle(color: Colors.white54)),
+                      Slider(
+                        value: _stressVal,
+                        min: 0, max: 10, divisions: 10,
+                        activeColor: const Color(0xFF6C63FF),
+                        onChanged: (v) => setState(() => _stressVal = v)
+                      ),
+                      
+                      const SizedBox(height: 40),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 55,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_ctrl.text.isNotEmpty) {
+                              FocusScope.of(context).unfocus(); // Skrýt klávesnici
+                              context.read<AppState>().createPost(_ctrl.text, _stressVal);
+                              context.read<AppState>().setIndex(0);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signál odeslán."), backgroundColor: Color(0xFF6C63FF)));
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
+                          child: const Text("ODESLAT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1))
+                        ),
+                      ),
+                      
+                      // Prázdný prostor dole, aby to nebylo nalepené
+                      SizedBox(height: keyboardHeight > 0 ? 0 : 100), 
+                    ],
                   ),
                 ),
               ),
-              
-              const SizedBox(height: 30),
-              const Text("Jakou tíhu cítíš?", style: TextStyle(color: Colors.white54)),
-              Slider(
-                value: _stressVal,
-                min: 0, max: 10, divisions: 10,
-                activeColor: const Color(0xFF6C63FF),
-                onChanged: (v) => setState(() => _stressVal = v)
-              ),
-              
-              const SizedBox(height: 40),
-              SizedBox(
-                width: double.infinity,
-                height: 55,
-                child: ElevatedButton(
-                  onPressed: () {
-                    if (_ctrl.text.isNotEmpty) {
-                      // Zavřeme klávesnici před odesláním
-                      FocusScope.of(context).unfocus();
-                      context.read<AppState>().createPost(_ctrl.text, _stressVal);
-                      context.read<AppState>().setIndex(0);
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signál odeslán."), backgroundColor: Color(0xFF6C63FF)));
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.black, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30))),
-                  child: const Text("ODESLAT", style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1))
-                ),
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     ).animate().scale();
