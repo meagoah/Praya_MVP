@@ -17,20 +17,11 @@ class _AuraModalState extends State<AuraModal> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  // Funkce pro odeslání (společná pro Enter i Tlačítko)
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
-      // 1. Odeslat do logiky aplikace
       context.read<AppState>().sendMessage(text);
-      
-      // 2. Vyčistit pole
       _controller.clear();
-      
-      // 3. Zavřít klávesnici na mobilu (volitelné, často lepší nechat otevřenou pro chat)
-      // FocusScope.of(context).unfocus(); 
-
-      // 4. Skrolovat dolů k nové zprávě
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -53,7 +44,7 @@ class _AuraModalState extends State<AuraModal> {
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    // Výška klávesnice
+    // Získáme výšku klávesnice
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return BackdropFilter(
@@ -83,7 +74,7 @@ class _AuraModalState extends State<AuraModal> {
               children: [
                 const SizedBox(height: 30),
                 
-                // THE SACRED CORE (Orb)
+                // THE SACRED CORE (Dýchající Orb)
                 Container(
                   width: 70, height: 70,
                   decoration: BoxDecoration(
@@ -154,51 +145,64 @@ class _AuraModalState extends State<AuraModal> {
                   ),
                 ),
                 
-                // Input Area
+                // INPUT AREA (ZCELA NOVÝ DESIGN)
                 Container(
+                  width: double.infinity,
                   padding: EdgeInsets.only(
-                    bottom: keyboardHeight + 20, // Dynamický padding nad klávesnicí
-                    left: 20, 
-                    right: 20, 
+                    bottom: keyboardHeight + 20, 
+                    left: 15, 
+                    right: 15, 
                     top: 15
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF05050A),
+                    color: const Color(0xFF05050A), // Pozadí lišty (aby neprosvítal chat)
                     border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05)))
                   ),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end, // Zarovnání dolů, kdyby bylo pole víceřádkové
                     children: [
+                      // Textové pole
                       Expanded(
-                        child: TextField(
-                          controller: _controller, // DŮLEŽITÉ: Napojení controlleru
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(), // Odeslání Enterem
-                          style: const TextStyle(color: Colors.white),
-                          cursorColor: state.moodColor,
-                          decoration: InputDecoration(
-                            hintText: "Napiš zprávu...",
-                            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-                            filled: true, 
-                            fillColor: Colors.white.withValues(alpha: 0.05),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide(color: state.moodColor.withValues(alpha: 0.3))),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(25),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1))
+                          ),
+                          child: TextField(
+                            controller: _controller,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendMessage(),
+                            style: const TextStyle(color: Colors.white),
+                            cursorColor: state.moodColor,
+                            minLines: 1,
+                            maxLines: 4, // Pole se může zvětšit
+                            decoration: InputDecoration(
+                              hintText: "Napiš zprávu...",
+                              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                              border: InputBorder.none,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
                       
-                      // --- TLAČÍTKO ODESLAT (BUTTON) ---
+                      const SizedBox(width: 12),
+                      
+                      // SAMOSTATNÉ TLAČÍTKO ODESLAT (Button)
                       GestureDetector(
-                        onTap: _sendMessage, // Odeslání kliknutím
+                        onTap: _sendMessage,
                         child: Container(
-                          width: 45, height: 45,
+                          width: 50, 
+                          height: 50,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: state.moodColor.withValues(alpha: 0.2),
-                            border: Border.all(color: state.moodColor.withValues(alpha: 0.5))
+                            color: state.moodColor, // Plná barva
+                            boxShadow: [
+                              BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 10)
+                            ]
                           ),
-                          child: Icon(Icons.arrow_upward, color: state.moodColor, size: 24),
+                          child: const Icon(Icons.arrow_upward, color: Colors.black, size: 24), // Černá šipka pro kontrast
                         ),
                       )
                     ],
