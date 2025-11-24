@@ -17,14 +17,20 @@ class _AuraModalState extends State<AuraModal> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
+  // Funkce pro odeslání (společná pro Enter i Tlačítko)
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
-      // Odeslat zprávu
+      // 1. Odeslat do logiky aplikace
       context.read<AppState>().sendMessage(text);
-      // Vyčistit pole
+      
+      // 2. Vyčistit pole
       _controller.clear();
-      // Skrolovat dolů (volitelné, pro lepší UX)
+      
+      // 3. Zavřít klávesnici na mobilu (volitelné, často lepší nechat otevřenou pro chat)
+      // FocusScope.of(context).unfocus(); 
+
+      // 4. Skrolovat dolů k nové zprávě
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -47,7 +53,7 @@ class _AuraModalState extends State<AuraModal> {
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    // Získáme výšku klávesnice
+    // Výška klávesnice
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
 
     return BackdropFilter(
@@ -64,7 +70,7 @@ class _AuraModalState extends State<AuraModal> {
         ),
         child: Stack(
           children: [
-            // 1. Ambientní pozadí (Soul Signature)
+            // 1. Ambientní pozadí
             Positioned.fill(
               child: Opacity(
                 opacity: 0.05, 
@@ -77,7 +83,7 @@ class _AuraModalState extends State<AuraModal> {
               children: [
                 const SizedBox(height: 30),
                 
-                // THE SACRED CORE (Dýchající Orb)
+                // THE SACRED CORE (Orb)
                 Container(
                   width: 70, height: 70,
                   decoration: BoxDecoration(
@@ -92,7 +98,7 @@ class _AuraModalState extends State<AuraModal> {
                 )
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .boxShadow(
-                  duration: 4000.ms, // Pomalý dech
+                  duration: 4000.ms, 
                   curve: Curves.easeInOutSine,
                   begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.0), blurRadius: 0, spreadRadius: 0),
                   end: BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 40, spreadRadius: 10),
@@ -148,11 +154,10 @@ class _AuraModalState extends State<AuraModal> {
                   ),
                 ),
                 
-                // Input Field Area
+                // Input Area
                 Container(
                   padding: EdgeInsets.only(
-                    // Zvedne pole nad klávesnici + malá rezerva
-                    bottom: keyboardHeight + 20, 
+                    bottom: keyboardHeight + 20, // Dynamický padding nad klávesnicí
                     left: 20, 
                     right: 20, 
                     top: 15
@@ -165,9 +170,9 @@ class _AuraModalState extends State<AuraModal> {
                     children: [
                       Expanded(
                         child: TextField(
-                          controller: _controller,
+                          controller: _controller, // DŮLEŽITÉ: Napojení controlleru
                           textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(),
+                          onSubmitted: (_) => _sendMessage(), // Odeslání Enterem
                           style: const TextStyle(color: Colors.white),
                           cursorColor: state.moodColor,
                           decoration: InputDecoration(
@@ -182,9 +187,10 @@ class _AuraModalState extends State<AuraModal> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // ODESÍLACÍ TLAČÍTKO (Nyní plně funkční!)
+                      
+                      // --- TLAČÍTKO ODESLAT (BUTTON) ---
                       GestureDetector(
-                        onTap: _sendMessage,
+                        onTap: _sendMessage, // Odeslání kliknutím
                         child: Container(
                           width: 45, height: 45,
                           decoration: BoxDecoration(
@@ -192,7 +198,7 @@ class _AuraModalState extends State<AuraModal> {
                             color: state.moodColor.withValues(alpha: 0.2),
                             border: Border.all(color: state.moodColor.withValues(alpha: 0.5))
                           ),
-                          child: Icon(Icons.arrow_upward, color: state.moodColor, size: 20),
+                          child: Icon(Icons.arrow_upward, color: state.moodColor, size: 24),
                         ),
                       )
                     ],
