@@ -16,12 +16,17 @@ class AuraModal extends StatefulWidget {
 class _AuraModalState extends State<AuraModal> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _focusNode = FocusNode();
 
   void _sendMessage() {
     final text = _controller.text.trim();
     if (text.isNotEmpty) {
       context.read<AppState>().sendMessage(text);
       _controller.clear();
+      
+      // Udržíme fokus na poli, aby klávesnice nezmizela (pokud chceš psát dál)
+      // _focusNode.requestFocus(); 
+      
       Future.delayed(const Duration(milliseconds: 100), () {
         if (_scrollController.hasClients) {
           _scrollController.animateTo(
@@ -38,6 +43,7 @@ class _AuraModalState extends State<AuraModal> {
   void dispose() {
     _controller.dispose();
     _scrollController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -50,7 +56,8 @@ class _AuraModalState extends State<AuraModal> {
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
-        height: MediaQuery.of(context).size.height * 0.85,
+        // Na mobilu chceme, aby to zabralo dost místa, ale nebylo utopené
+        height: MediaQuery.of(context).size.height * 0.9, 
         decoration: BoxDecoration(
           color: const Color(0xFF05050A).withValues(alpha: 0.95),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
@@ -106,7 +113,7 @@ class _AuraModalState extends State<AuraModal> {
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(30),
+                    padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
                     itemCount: state.chatHistory.length,
                     itemBuilder: (ctx, i) {
                       final msg = state.chatHistory[i];
@@ -145,21 +152,24 @@ class _AuraModalState extends State<AuraModal> {
                   ),
                 ),
                 
-                // INPUT AREA (ZCELA NOVÝ DESIGN)
+                // INPUT AREA (S PADDING FIXEM)
                 Container(
                   width: double.infinity,
+                  // Tento padding je klíčový. Pokud je klávesnice nahoře (keyboardHeight > 0),
+                  // přidáme jen malý padding, protože Scaffold/Resize už to posunul.
+                  // Pokud používáme modal, musíme si padding hlídat sami.
                   padding: EdgeInsets.only(
-                    bottom: keyboardHeight + 20, 
+                    bottom: keyboardHeight > 0 ? keyboardHeight + 10 : 40, 
                     left: 15, 
                     right: 15, 
                     top: 15
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF05050A), // Pozadí lišty (aby neprosvítal chat)
+                    color: const Color(0xFF05050A), 
                     border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05)))
                   ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end, // Zarovnání dolů, kdyby bylo pole víceřádkové
+                    crossAxisAlignment: CrossAxisAlignment.end, 
                     children: [
                       // Textové pole
                       Expanded(
@@ -171,12 +181,13 @@ class _AuraModalState extends State<AuraModal> {
                           ),
                           child: TextField(
                             controller: _controller,
+                            focusNode: _focusNode,
                             textInputAction: TextInputAction.send,
                             onSubmitted: (_) => _sendMessage(),
                             style: const TextStyle(color: Colors.white),
                             cursorColor: state.moodColor,
                             minLines: 1,
-                            maxLines: 4, // Pole se může zvětšit
+                            maxLines: 4, 
                             decoration: InputDecoration(
                               hintText: "Napiš zprávu...",
                               hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
@@ -189,20 +200,17 @@ class _AuraModalState extends State<AuraModal> {
                       
                       const SizedBox(width: 12),
                       
-                      // SAMOSTATNÉ TLAČÍTKO ODESLAT (Button)
-                      GestureDetector(
-                        onTap: _sendMessage,
-                        child: Container(
-                          width: 50, 
-                          height: 50,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: state.moodColor, // Plná barva
-                            boxShadow: [
-                              BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 10)
-                            ]
-                          ),
-                          child: const Icon(Icons.arrow_upward, color: Colors.black, size: 24), // Černá šipka pro kontrast
+                      // --- OPRAVENÉ TLAČÍTKO (FloatingActionButton) ---
+                      // Používáme FAB, protože má perfektní hit-test a splash efekt
+                      SizedBox(
+                        width: 50, 
+                        height: 50,
+                        child: FloatingActionButton(
+                          onPressed: _sendMessage,
+                          backgroundColor: state.moodColor,
+                          elevation: 5,
+                          shape: const CircleBorder(),
+                          child: const Icon(Icons.arrow_upward, color: Colors.black, size: 24),
                         ),
                       )
                     ],
