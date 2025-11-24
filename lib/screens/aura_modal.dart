@@ -6,13 +6,50 @@ import 'dart:ui';
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart'; // Potřebujeme pro SoulSignatureWidget
 
-class AuraModal extends StatelessWidget {
+class AuraModal extends StatefulWidget {
   const AuraModal({super.key});
+
+  @override
+  State<AuraModal> createState() => _AuraModalState();
+}
+
+class _AuraModalState extends State<AuraModal> {
+  final TextEditingController _controller = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  void _sendMessage() {
+    final text = _controller.text.trim();
+    if (text.isNotEmpty) {
+      // Odeslat zprávu
+      context.read<AppState>().sendMessage(text);
+      // Vyčistit pole
+      _controller.clear();
+      // Skrolovat dolů (volitelné, pro lepší UX)
+      Future.delayed(const Duration(milliseconds: 100), () {
+        if (_scrollController.hasClients) {
+          _scrollController.animateTo(
+            _scrollController.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     var state = context.watch<AppState>();
-    
+    // Získáme výšku klávesnice
+    final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+
     return BackdropFilter(
       filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
       child: Container(
@@ -71,12 +108,12 @@ class AuraModal extends StatelessWidget {
                 // Chat History
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(30),
                     itemCount: state.chatHistory.length,
                     itemBuilder: (ctx, i) {
                       final msg = state.chatHistory[i];
                       final isMe = msg.startsWith("Ty:");
-                      // Odstraníme prefixy pro čistší vzhled
                       final text = msg.replaceAll("Ty: ", "").replaceAll("Aura: ", "");
                       
                       return Padding(
@@ -85,7 +122,7 @@ class AuraModal extends StatelessWidget {
                           alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                            constraints: const BoxConstraints(maxWidth: 300),
+                            constraints: const BoxConstraints(maxWidth: 280),
                             decoration: BoxDecoration(
                               color: isMe ? state.moodColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                               borderRadius: BorderRadius.only(
@@ -111,24 +148,26 @@ class AuraModal extends StatelessWidget {
                   ),
                 ),
                 
-                // Input Field (Optimalizováno pro mobil)
-                Padding(
+                // Input Field Area
+                Container(
                   padding: EdgeInsets.only(
-                    // Zvedne pole nad klávesnici
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 20, 
+                    // Zvedne pole nad klávesnici + malá rezerva
+                    bottom: keyboardHeight + 20, 
                     left: 20, 
                     right: 20, 
-                    top: 10
+                    top: 15
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF05050A),
+                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05)))
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: TextField(
-                          // Akce na klávesnici (Enter odešle zprávu)
+                          controller: _controller,
                           textInputAction: TextInputAction.send,
-                          onSubmitted: (val) {
-                             if (val.isNotEmpty) context.read<AppState>().sendMessage(val);
-                          },
+                          onSubmitted: (_) => _sendMessage(),
                           style: const TextStyle(color: Colors.white),
                           cursorColor: state.moodColor,
                           decoration: InputDecoration(
@@ -136,20 +175,24 @@ class AuraModal extends StatelessWidget {
                             hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                             filled: true, 
                             fillColor: Colors.white.withValues(alpha: 0.05),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
                             focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide(color: state.moodColor.withValues(alpha: 0.3))),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      // Tlačítko odeslat (jako záloha vedle pole)
-                      CircleAvatar(
-                        backgroundColor: state.moodColor.withValues(alpha: 0.2),
-                        radius: 24,
-                        child: IconButton(
-                          icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
-                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Použij klávesu Odeslat na klávesnici :)"), duration: Duration(seconds: 2))),
+                      // ODESÍLACÍ TLAČÍTKO (Nyní plně funkční!)
+                      GestureDetector(
+                        onTap: _sendMessage,
+                        child: Container(
+                          width: 45, height: 45,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: state.moodColor.withValues(alpha: 0.2),
+                            border: Border.all(color: state.moodColor.withValues(alpha: 0.5))
+                          ),
+                          child: Icon(Icons.arrow_upward, color: state.moodColor, size: 20),
                         ),
                       )
                     ],

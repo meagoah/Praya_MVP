@@ -17,16 +17,16 @@ class _CreateScreenState extends State<CreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Zjistíme výšku klávesnice
-    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
-
-    return SizedBox.expand( // Roztáhnout na celou obrazovku
-      child: SingleChildScrollView(
-        // Povolíme scrollování, když klávesnice překryje obsah
-        physics: const ClampingScrollPhysics(),
-        child: Padding(
-          // Přidáme padding dole, aby se obsah posunul nad klávesnici + rezerva
-          padding: EdgeInsets.fromLTRB(25, 100, 25, bottomPadding + 50),
+    // Použijeme Scaffold s průhledným pozadím. 
+    // Scaffold má vestavěnou logiku pro klávesnici (resizeToAvoidBottomInset).
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      resizeToAvoidBottomInset: true, // Toto zajistí, že se obsah posune a pak vrátí
+      body: Center(
+        child: SingleChildScrollView(
+          // Clamping physics zabrání "gumovému" efektu, který může zaseknout scroll
+          physics: const ClampingScrollPhysics(),
+          padding: const EdgeInsets.all(25),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -41,7 +41,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   controller: _ctrl,
                   maxLines: 5,
                   style: const TextStyle(color: Colors.white, fontSize: 18),
-                  // Přidáme akci "Done" na klávesnici pro skrytí
+                  // Přidáme Done akci pro zavření klávesnice
                   textInputAction: TextInputAction.done,
                   decoration: const InputDecoration(
                     hintText: "Co tě trápí? ...",
@@ -67,6 +67,8 @@ class _CreateScreenState extends State<CreateScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (_ctrl.text.isNotEmpty) {
+                      // Zavřeme klávesnici před odesláním
+                      FocusScope.of(context).unfocus();
                       context.read<AppState>().createPost(_ctrl.text, _stressVal);
                       context.read<AppState>().setIndex(0);
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Signál odeslán."), backgroundColor: Color(0xFF6C63FF)));
