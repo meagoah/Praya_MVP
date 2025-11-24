@@ -18,7 +18,7 @@ class AuraModal extends StatelessWidget {
       child: Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
-          color: const Color(0xFF05050A).withValues(alpha: 0.95), // Temnější, hlubší pozadí
+          color: const Color(0xFF05050A).withValues(alpha: 0.95),
           borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
           border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
           boxShadow: [
@@ -40,24 +40,25 @@ class AuraModal extends StatelessWidget {
               children: [
                 const SizedBox(height: 30),
                 
-                // THE SACRED CORE (Místo blikající ikony)
+                // THE SACRED CORE (Dýchající Orb)
                 Container(
-                  width: 80, height: 80,
+                  width: 70, height: 70,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: Colors.black,
-                    border: Border.all(color: state.moodColor.withValues(alpha: 0.3)),
+                    border: Border.all(color: state.moodColor.withValues(alpha: 0.5), width: 1),
                     boxShadow: [
-                      BoxShadow(color: state.moodColor.withValues(alpha: 0.2), blurRadius: 20)
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.5), blurRadius: 10, offset: const Offset(0, 5))
                     ]
                   ),
-                  child: Icon(Icons.auto_awesome, color: Colors.white.withValues(alpha: 0.9), size: 30),
+                  child: const Icon(Icons.auto_awesome, color: Colors.white, size: 30),
                 )
                 .animate(onPlay: (c) => c.repeat(reverse: true))
                 .boxShadow(
-                  duration: 4000.ms, // Pomalý dech (4s)
-                  begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.1), blurRadius: 10, spreadRadius: 0),
-                  end: BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 40, spreadRadius: 15),
+                  duration: 4000.ms, // Pomalý dech
+                  curve: Curves.easeInOutSine,
+                  begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.0), blurRadius: 0, spreadRadius: 0),
+                  end: BoxShadow(color: state.moodColor.withValues(alpha: 0.4), blurRadius: 40, spreadRadius: 10),
                 ),
 
                 const SizedBox(height: 20),
@@ -70,69 +71,88 @@ class AuraModal extends StatelessWidget {
                 // Chat History
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(25),
+                    padding: const EdgeInsets.all(30),
                     itemCount: state.chatHistory.length,
                     itemBuilder: (ctx, i) {
                       final msg = state.chatHistory[i];
                       final isMe = msg.startsWith("Ty:");
-                      final text = msg.replaceFirst(isMe ? "Ty: " : "Aura: ", "");
+                      // Odstraníme prefixy pro čistší vzhled
+                      final text = msg.replaceAll("Ty: ", "").replaceAll("Aura: ", "");
                       
-                      return Align(
-                        alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 20),
-                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                          constraints: const BoxConstraints(maxWidth: 300),
-                          decoration: BoxDecoration(
-                            color: isMe ? state.moodColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
-                            border: Border.all(color: isMe ? state.moodColor.withValues(alpha: 0.3) : Colors.white10),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(20),
-                              topRight: const Radius.circular(20),
-                              bottomLeft: isMe ? const Radius.circular(20) : Radius.zero,
-                              bottomRight: isMe ? Radius.zero : const Radius.circular(20)
-                            )
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: Align(
+                          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            constraints: const BoxConstraints(maxWidth: 300),
+                            decoration: BoxDecoration(
+                              color: isMe ? state.moodColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(20),
+                                topRight: const Radius.circular(20),
+                                bottomLeft: isMe ? const Radius.circular(20) : Radius.zero,
+                                bottomRight: isMe ? Radius.zero : const Radius.circular(20)
+                              ),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.05))
+                            ),
+                            child: Text(
+                              text, 
+                              style: TextStyle(
+                                color: isMe ? Colors.white : Colors.white70, 
+                                fontSize: 16,
+                                height: 1.4
+                              )
+                            ),
                           ),
-                          child: Text(
-                            text, 
-                            style: GoogleFonts.outfit(
-                              color: isMe ? Colors.white : Colors.white70, 
-                              fontSize: 16,
-                              height: 1.4
-                            )
-                          ),
-                        ).animate().fadeIn().slideY(begin: 0.1, end: 0),
+                        ),
                       );
                     },
                   ),
                 ),
                 
-                // Input Field
-                Container(
+                // Input Field (Optimalizováno pro mobil)
+                Padding(
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 30, 
-                    left: 25, 
-                    right: 25, 
-                    top: 20
+                    // Zvedne pole nad klávesnici
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 20, 
+                    left: 20, 
+                    right: 20, 
+                    top: 10
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF05050A),
-                    border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.05)))
-                  ),
-                  child: TextField(
-                    onSubmitted: (val) => context.read<AppState>().sendMessage(val),
-                    style: const TextStyle(color: Colors.white),
-                    cursorColor: state.moodColor,
-                    decoration: InputDecoration(
-                      hintText: "Napiš zprávu...",
-                      hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
-                      filled: true, 
-                      fillColor: Colors.white.withValues(alpha: 0.05),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 25, vertical: 15),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide(color: state.moodColor.withValues(alpha: 0.3))),
-                      suffixIcon: Icon(Icons.send, color: state.moodColor.withValues(alpha: 0.5))
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          // Akce na klávesnici (Enter odešle zprávu)
+                          textInputAction: TextInputAction.send,
+                          onSubmitted: (val) {
+                             if (val.isNotEmpty) context.read<AppState>().sendMessage(val);
+                          },
+                          style: const TextStyle(color: Colors.white),
+                          cursorColor: state.moodColor,
+                          decoration: InputDecoration(
+                            hintText: "Napiš zprávu...",
+                            hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
+                            filled: true, 
+                            fillColor: Colors.white.withValues(alpha: 0.05),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide(color: state.moodColor.withValues(alpha: 0.3))),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      // Tlačítko odeslat (jako záloha vedle pole)
+                      CircleAvatar(
+                        backgroundColor: state.moodColor.withValues(alpha: 0.2),
+                        radius: 24,
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_upward, color: Colors.white, size: 20),
+                          onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Použij klávesu Odeslat na klávesnici :)"), duration: Duration(seconds: 2))),
+                        ),
+                      )
+                    ],
                   ),
                 )
               ],
