@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Pro HapticFeedback
+import 'package:flutter/services.dart';
 import 'dart:math';
 import '../models/data_models.dart';
 
@@ -11,11 +11,11 @@ class AppState extends ChangeNotifier {
   int navIndex = 0;
   int auraPoints = 2450;
   int get level => (auraPoints / 500).floor() + 1;
+  
   double currentStress = 0.5; 
   bool showJournal = false;
   double totalImpactMoney = 450.0; 
 
-  // Helpers
   int get xpForNextLevel => level * 500;
   int get xpCurrentLevelStart => (level - 1) * 500;
   int get xpMissing => xpForNextLevel - auraPoints;
@@ -24,7 +24,6 @@ class AppState extends ChangeNotifier {
     return pointsInCurrentLevel / 500.0;
   }
 
-  // NOTIFIKACE
   List<AppNotification> notifications = [
     AppNotification(title: "Svíčka zapálena", subtitle: "Maria z Brazílie podpořila tvou modlitbu.", icon: Icons.light_mode, color: Colors.amber, timeAgo: "2m"),
     AppNotification(title: "Nový Level!", subtitle: "Dosáhl jsi úrovně Hledač.", icon: Icons.arrow_upward, color: Colors.cyan, timeAgo: "1h"),
@@ -32,24 +31,12 @@ class AppState extends ChangeNotifier {
   ];
 
   int get unreadNotificationsCount => notifications.where((n) => !n.isRead).length;
+  void markNotificationsAsRead() { for (var n in notifications) { n.isRead = true; } notifyListeners(); }
 
-  void markNotificationsAsRead() {
-    for (var n in notifications) {
-      n.isRead = true;
-    }
-    notifyListeners();
-  }
-
-  // DATA
   final List<double> moodBefore = [0.8, 0.7, 0.9, 0.6, 0.8, 0.5, 0.7];
   final List<double> moodAfter = [0.4, 0.3, 0.5, 0.2, 0.4, 0.2, 0.3];
   final Map<String, double> emotionDistribution = {"Vděčnost": 0.45, "Prosba / Úzkost": 0.30, "Naděje": 0.15, "Smutek": 0.10};
-
-  final List<List<double>> weeklyTrends = [
-    [0.8, 0.2], [0.7, 0.3], [0.9, 0.1], 
-    [0.6, 0.6], [0.4, 0.8], [0.3, 0.9], [0.2, 0.8] 
-  ];
-  
+  final List<List<double>> weeklyTrends = [[0.8, 0.2], [0.7, 0.3], [0.9, 0.1], [0.6, 0.6], [0.4, 0.8], [0.3, 0.9], [0.2, 0.8]];
   final List<double> monthlyMoodMap = List.generate(30, (index) => (sin(index * 0.5) + 1) / 2 * 0.8 + 0.1);
 
   List<CharityProject> charityProjects = [
@@ -80,49 +67,58 @@ class AppState extends ChangeNotifier {
   List<FeedItem> get savedPosts => feed.where((i) => i.isSaved && !i.isHidden).toList();
   List<FeedItem> get visibleFeed => feed.where((i) => !i.isHidden).toList();
 
-  LevelInfo getLevelData(int targetLevel) {
-    switch (faith) {
-      case FaithType.christian:
-        if (targetLevel <= 1) return LevelInfo("Katechumen", "Začátek cesty.", "Feed");
-        if (targetLevel <= 3) return LevelInfo("Poutník", "Cesta modlitby.", "Překlady");
-        if (targetLevel <= 5) return LevelInfo("Učedník", "Pravidelná praxe.", "Statistiky");
-        if (targetLevel <= 10) return LevelInfo("Strážce Víry", "Opora komunity.", "Aura Voice");
-        if (targetLevel <= 20) return LevelInfo("Misionář", "Šíření světla.", "Global Impact");
-        return LevelInfo("Apoštol Lásky", "Víra hory přenáší.", "Legacy Mode");
-      case FaithType.atheist:
-        if (targetLevel <= 1) return LevelInfo("Pozorovatel", "Zkoumání dat.", "Feed");
-        if (targetLevel <= 3) return LevelInfo("Analytik", "Síla psychiky.", "Studie");
-        if (targetLevel <= 5) return LevelInfo("Empatik", "Podpora ostatních.", "Tracker");
-        if (targetLevel <= 10) return LevelInfo("Humanista", "Měnění světa.", "Impact Report");
-        return LevelInfo("Vizionář", "Budoucnost lidstva.", "Global Influence");
-      case FaithType.muslim:
-        if (targetLevel <= 1) return LevelInfo("Hledající", "Hledání pravdy.", "Dua Feed");
-        if (targetLevel <= 3) return LevelInfo("Poutník", "Přímá stezka.", "Překlady");
-        if (targetLevel <= 5) return LevelInfo("Služebník", "Služba stvořiteli.", "Ibadah Stats");
-        if (targetLevel <= 10) return LevelInfo("Pamatující", "Srdce nezapomíná.", "AI Imam");
-        return LevelInfo("Přítel (Wali)", "Blízko zdroji.", "Barakah Mode");
-      default: 
-        if (targetLevel <= 1) return LevelInfo("Probuzený", "Nové vnímání.", "Řeka Naděje");
-        if (targetLevel <= 3) return LevelInfo("Hledač Světla", "Hledání spojení.", "Aura");
-        if (targetLevel <= 5) return LevelInfo("Světlonoš", "Inspirace ostatních.", "Analytika");
-        if (targetLevel <= 10) return LevelInfo("Strážce Frekvence", "Harmonie v chaosu.", "Healing Mode");
-        if (targetLevel <= 20) return LevelInfo("Tkadlec Osudu", "Vidění souvislostí.", "Deep Connect");
-        return LevelInfo("Kosmické Vědomí", "Jednota s celkem.", "Avatar");
+  // --- KOMPLETNÍ STROMY S LORE ---
+  final Map<FaithType, Map<int, LevelInfo>> _progressionTrees = {
+    FaithType.christian: {
+      1: LevelInfo("Katechumen", "Tvá cesta začíná nasloucháním.", "Jako ten, kdo stojí v předsíni chrámu, učíš se vnímat potřeby druhých. Tvá modlitba je zatím tichá, ale tvé srdce se otevírá.", "Základní Feed"),
+      2: LevelInfo("Hledající", "První kroky v modlitbě.", "Začínáš formulovat své vlastní prosby a chápeš sílu společenství. Tvá víra hledá oporu v Písmu a tradici.", "Deník Vděčnosti"),
+      3: LevelInfo("Poutník", "Kráčíš po cestě světla.", "Nyní jsi na cestě. Tvá modlitba má směr a tvé nohy rytmus. Pomáháš nést břemena ostatních poutníků.", "Překlady Modliteb"),
+      5: LevelInfo("Učedník", "Pravidelnost přináší ovoce.", "Denní disciplína modlitby mění tvé srdce. Stáváš se učedníkem Lásky, který nejen prosí, ale i děkuje.", "Detailní Statistiky"),
+      10: LevelInfo("Strážce Víry", "Jsi oporou komunity.", "Ostatní se na tebe obracejí s důvěrou. Tvá modlitba je štítem pro ty, kteří nemají sílu se modlit sami.", "Aura AI Voice"),
+      20: LevelInfo("Misionář", "Šíříš světlo do světa.", "Tvá víra překračuje hranice tvého domova. Zapaluješ světlo naděje v temných koutech světa.", "Global Impact"),
+      50: LevelInfo("Apoštol Lásky", "Tvá víra hory přenáší.", "Dosáhl jsi vrcholu služby. Tvá přítomnost je modlitbou. Jsi živým důkazem síly společenství.", "Legacy Mode"),
+    },
+    FaithType.atheist: {
+      1: LevelInfo("Pozorovatel", "Zkoumáš svět dat.", "Sleduješ toky lidských emocí a potřeb. Analyzuješ, jak sdílená myšlenka ovlivňuje realitu.", "Data Feed"),
+      2: LevelInfo("Skeptik", "Ptáš se a ověřuješ.", "Nevěříš slepě, ale hledáš důkazy. Tvá skepse je zdravá, protože vede k hlubšímu pochopení lidské psychiky.", "Deník Myšlenek"),
+      3: LevelInfo("Hledač Faktů", "Nacházíš souvislosti.", "Začínáš vidět vzorce v chaosu. Uvědomuješ si, že podpora komunity má měřitelný dopad na well-being.", "Překlady Idejí"),
+      5: LevelInfo("Analytik", "Chápeš vzorce mysli.", "Tvá mysl je nástroj. Používáš logiku k tomu, abys efektivně pomáhal tam, kde je to nejvíce třeba.", "Psycho-Stats"),
+      10: LevelInfo("Empatik", "Cítíš, co říkají data.", "Čísla se mění v příběhy. Rozumíš, že za každým datovým bodem je lidský osud, který stojí za to podpořit.", "AI Psycholog"),
+      20: LevelInfo("Filantrop", "Tvé činy mají reálný dopad.", "Měníš svět ne modlitbou, ale činem. Tvé zdroje a energie směřují tam, kde mění životy.", "Allocation Power"),
+      50: LevelInfo("Vizionář", "Tvoříš budoucnost lidstva.", "Vidíš svět ne takový, jaký je, ale jaký by mohl být. Jsi architektem lepší společnosti.", "Global Influence"),
+    },
+    FaithType.muslim: {
+      1: LevelInfo("Hledající (Talib)", "Hledáš pravdu.", "Tvá cesta začíná upřímnou snahou poznat Vůli. Jsi jako student, který sedí u nohou moudrosti.", "Dua Feed"),
+      2: LevelInfo("Probuzený", "Otevíráš oči srdce.", "Začínáš vnímat znamení v každodenním životě. Tvá vděčnost roste s každým nádechem.", "Sabr Tracker"),
+      3: LevelInfo("Poutník (Salik)", "Kráčíš po přímé stezce.", "Tvá cesta je jasná. Vytrvalost a trpělivost (Sabr) jsou tvými společníky na cestě k Bohu.", "Překlady"),
+      5: LevelInfo("Služebník (Abid)", "Sloužíš stvořiteli.", "V modlitbě nacházíš klid. Tvá služba lidem je formou uctívání. Jsi užitečný pro svou Ummu.", "Ibadah Stats"),
+      10: LevelInfo("Pamatující (Zakir)", "Srdce nezapomíná.", "Tvé srdce je stále ve spojení. Každý tvůj tep je připomínkou Vyšší moci.", "AI Imam"),
+      20: LevelInfo("Vědoucí (Alim)", "Znalost je světlo.", "Tvá moudrost je majákem. Pomáháš ostatním orientovat se ve složitostech života.", "Halaqa Groups"),
+      50: LevelInfo("Přítel (Wali)", "Blízko zdroji.", "Jsi tím, kdo je blízký Bohu. Tvá přítomnost přináší mír a požehnání (Baraka) ostatním.", "Barakah Mode"),
+    },
+    FaithType.universal: { 
+      1: LevelInfo("Probuzený", "Otevřel jsi oči novému vnímání.", "Uvědomuješ si, že nejsi oddělený od celku. Tvá cesta k jednotě právě začíná.", "Řeka Naděje"),
+      2: LevelInfo("Novic", "Učíš se pracovat s energií.", "Zjišťuješ, že tvá myšlenka má váhu. Učíš se směrovat svou pozornost tam, kde je třeba.", "Osobní Deník"),
+      3: LevelInfo("Hledač Světla", "Aktivně vyhledáváš spojení.", "Tvá duše rezonuje s příběhy druhých. Hledáš světlo v sobě i v ostatních.", "Univerzální Překlad"),
+      5: LevelInfo("Světlonoš", "Tvá energie inspiruje ostatní.", "Stáváš se zdrojem. Tvá pozitivita a naděje jsou nakažlivé a léčí okolí.", "Aura Analytika"),
+      10: LevelInfo("Strážce Frekvence", "Udržuješ harmonii v chaosu.", "Když ostatní panikaří, ty držíš prostor klidu. Jsi kotvou v bouři.", "Healing AI"),
+      20: LevelInfo("Tkadlec Osudu", "Vidíš souvislosti.", "Chápeš jemné předivo osudu. Víš, že náhody neexistují a vše je propojeno.", "Circle Maker"),
+      50: LevelInfo("Kosmické Vědomí", "Jsi jedno s celkem.", "Hranice mezi tebou a vesmírem mizí. Jsi kapkou v oceánu i oceánem v kapce.", "Avatar"),
     }
+  };
+
+  LevelInfo getLevelData(int targetLevel) {
+    var tree = _progressionTrees[faith] ?? _progressionTrees[FaithType.universal]!;
+    var definedLevels = tree.keys.toList()..sort();
+    int bestMatch = definedLevels.lastWhere((k) => k <= targetLevel, orElse: () => 1);
+    return tree[bestMatch]!;
   }
   
-  List<int> get milestones => [50, 40, 30, 20, 15, 10, 5, 3, 2, 1];
+  List<int> get milestones => [50, 20, 10, 5, 3, 2, 1]; // Zjednodušeno pro lepší zobrazení
 
+  // ACTIONS (Zbytek zůstává stejný, jen pro kontext)
   void login(String name, FaithType selectedFaith) { nickname = name; faith = selectedFaith; isLoggedIn = true; notifyListeners(); }
-  
-  // --- TATO METODA CHYBĚLA ---
-  void updateProfile(String name, FaithType selectedFaith) {
-    nickname = name;
-    faith = selectedFaith;
-    notifyListeners();
-  }
-  // ---------------------------
-
+  void updateProfile(String name, FaithType selectedFaith) { nickname = name; faith = selectedFaith; notifyListeners(); }
   void setIndex(int i) { navIndex = i; notifyListeners(); }
   void toggleJournalView(bool show) { showJournal = show; notifyListeners(); }
   void updateStress(double val) { currentStress = val; notifyListeners(); }
@@ -141,13 +137,6 @@ class AppState extends ChangeNotifier {
     var item = feed.firstWhere((e) => e.id == id); item.likes++; item.isLiked = true; auraPoints += 15; totalImpactMoney += 1; notifyListeners(); HapticFeedback.heavyImpact();
   }
   
-  void allocateCharity(String title) {
-    totalImpactMoney += 10; 
-    notifyListeners();
-    HapticFeedback.mediumImpact();
-  }
-
-  void sendMessage(String text) {
-    chatHistory.add("Ty: $text"); notifyListeners(); Future.delayed(const Duration(milliseconds: 1500), () { chatHistory.add("Aura: Rozumím. Tvá slova rezonují. Zpracovávám tvou emoci..."); notifyListeners(); });
-  }
+  void allocateCharity(String title) { totalImpactMoney += 10; notifyListeners(); HapticFeedback.mediumImpact(); }
+  void sendMessage(String text) { chatHistory.add("Ty: $text"); notifyListeners(); Future.delayed(const Duration(milliseconds: 1500), () { chatHistory.add("Aura: Rozumím. Tvá slova rezonují. Zpracovávám tvou emoci..."); notifyListeners(); }); }
 }

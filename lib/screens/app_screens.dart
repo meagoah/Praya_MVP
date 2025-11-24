@@ -125,17 +125,15 @@ class MainLayout extends StatelessWidget {
     ];
 
     return Scaffold(
-      resizeToAvoidBottomInset: false, // Fix pro mobilní pozadí
+      resizeToAvoidBottomInset: false, 
       body: Stack(
         children: [
           const LivingBackground(),
           SafeArea(child: IndexedStack(index: state.navIndex, children: pages)),
           
-          // Dock (skrytý při klávesnici)
           if (MediaQuery.of(context).viewInsets.bottom == 0)
             Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
           
-          // Aura AI Orb
           if (MediaQuery.of(context).viewInsets.bottom == 0)
             Positioned(
               bottom: 120, right: 20,
@@ -281,11 +279,19 @@ class JourneyScreen extends StatelessWidget {
         GlassPanel(glow: true, child: Column(children: [
           Text("${state.nickname} • Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)),
           Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)),
-          const SizedBox(height: 10), Text(currentLvl.description, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+          const SizedBox(height: 10), 
+          // ZDE BYLA CHYBA: description -> subtitle
+          Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
           const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))
         ])),
         const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20),
-        ...state.milestones.map((milestone) { var data = state.getLevelData(milestone); bool unlocked = state.level >= milestone; bool isCurrent = state.level == milestone; return Column(children: [_buildNode(context, milestone, data.title, unlocked, isCurrent, state, data.perk), if (milestone != 1) _buildLine(active: unlocked)]); }), const SizedBox(height: 100)
+        ...state.milestones.map((milestone) { 
+          var data = state.getLevelData(milestone); 
+          bool unlocked = state.level >= milestone; 
+          bool isCurrent = state.level == milestone; 
+          // Předáváme správně detailedDescription do description
+          return Column(children: [_ExpandableNode(lvl: milestone, title: data.title, subtitle: data.subtitle, description: data.detailedDescription, perk: data.perk, unlocked: unlocked, isCurrent: isCurrent, color: state.moodColor), if (milestone != 1) _buildLine(active: unlocked)]); 
+        }), const SizedBox(height: 100)
       ] else ...[
         if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Prázdný deník.", style: TextStyle(color: Colors.white38))),
         ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -297,18 +303,47 @@ class JourneyScreen extends StatelessWidget {
     ]).animate().scale());
   }
 
-  Widget _buildNode(BuildContext context, int lvl, String title, bool unlocked, bool isCurrent, AppState state, String perk) { return GlassPanel(opacity: unlocked ? 0.08 : 0.02, child: Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: unlocked ? state.moodColor : Colors.white10, shape: BoxShape.circle, boxShadow: unlocked ? [BoxShadow(color: state.moodColor, blurRadius: 15)] : []), child: Icon(unlocked ? Icons.star : Icons.lock, color: unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: TextStyle(color: unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)), Text("Lvl $lvl: $perk", style: const TextStyle(color: Colors.white38, fontSize: 10)), if (isCurrent) Text("SOUČASNÁ", style: TextStyle(color: state.moodColor, fontSize: 10, fontWeight: FontWeight.bold))]))])); }
-  Widget _buildLine({bool active = false}) { return Container(margin: const EdgeInsets.symmetric(vertical: 5), width: 2, height: 20, color: active ? Colors.white54 : Colors.white10); }
+  Widget _buildLine({bool active = false}) { return Container(margin: const EdgeInsets.symmetric(vertical: 2), width: 2, height: 20, color: active ? Colors.white54 : Colors.white10); }
   void _addNoteDialog(BuildContext context, AppState state, String id) { TextEditingController ctrl = TextEditingController(); showDialog(context: context, builder: (ctx) => AlertDialog(backgroundColor: const Color(0xFF101015), title: const Text("Reflexe", style: TextStyle(color: Colors.white)), content: TextField(controller: ctrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(hintText: "Poznámka...", hintStyle: TextStyle(color: Colors.white38))), actions: [TextButton(onPressed: () { if(ctrl.text.isNotEmpty) { state.addPrivateNote(id, ctrl.text); Navigator.pop(ctx); }}, child: const Text("Uložit"))])); }
   void _showEditProfileDialog(BuildContext context, AppState state) { TextEditingController nameCtrl = TextEditingController(text: state.nickname); FaithType tempFaith = state.faith; showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setState) { return AlertDialog(backgroundColor: const Color(0xFF101015), title: const Text("Upravit", style: TextStyle(color: Colors.white)), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Jméno", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 20), Wrap(spacing: 8, children: FaithType.values.map((f) { bool selected = tempFaith == f; return ChoiceChip(label: Text(f.toString().split('.').last.toUpperCase()), selected: selected, selectedColor: Colors.white, backgroundColor: Colors.black26, onSelected: (v) => setState(() => tempFaith = f)); }).toList())]), actions: [TextButton(onPressed: () { context.read<AppState>().updateProfile(nameCtrl.text, tempFaith); Navigator.pop(ctx); }, child: const Text("Uložit"))]); })); }
 }
 
-// C. CREATE SCREEN (FIXED KEYBOARD PADDING)
+// --- ROZBALOVACÍ UZEL (PRIVÁTNÍ WIDGET) ---
+class _ExpandableNode extends StatefulWidget {
+  final int lvl;
+  final String title;
+  final String subtitle;
+  final String description;
+  final String perk;
+  final bool unlocked;
+  final bool isCurrent;
+  final Color color;
+
+  const _ExpandableNode({required this.lvl, required this.title, required this.subtitle, required this.description, required this.perk, required this.unlocked, required this.isCurrent, required this.color});
+  @override
+  State<_ExpandableNode> createState() => _ExpandableNodeState();
+}
+
+class _ExpandableNodeState extends State<_ExpandableNode> {
+  bool isExpanded = false;
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () { setState(() => isExpanded = !isExpanded); HapticFeedback.lightImpact(); },
+      child: AnimatedContainer(duration: 300.ms, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: isExpanded ? Colors.white.withValues(alpha: 0.08) : (widget.unlocked ? Colors.white.withValues(alpha: 0.03) : Colors.transparent), borderRadius: BorderRadius.circular(20), border: Border.all(color: widget.isCurrent ? widget.color : (widget.unlocked ? Colors.white24 : Colors.white10)), boxShadow: widget.isCurrent ? [BoxShadow(color: widget.color.withValues(alpha: 0.2), blurRadius: 15)] : []), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: widget.unlocked ? widget.color : Colors.white10, shape: BoxShape.circle), child: Icon(widget.unlocked ? (widget.isCurrent ? Icons.place : Icons.check) : Icons.lock, color: widget.unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.title, style: TextStyle(color: widget.unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)), Text("Lvl ${widget.lvl} • ${widget.subtitle}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 10))])), Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white24, size: 16)]),
+          AnimatedCrossFade(firstChild: const SizedBox.shrink(), secondChild: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SizedBox(height: 15), const Divider(color: Colors.white10), const SizedBox(height: 10), Text(widget.description, style: const TextStyle(color: Colors.white70, height: 1.4, fontSize: 13)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10)), child: Row(children: [Icon(Icons.auto_awesome, size: 14, color: widget.color), const SizedBox(width: 10), Expanded(child: Text("Odměna: ${widget.perk}", style: TextStyle(color: widget.color, fontSize: 12, fontWeight: FontWeight.bold)))]))]), crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst, duration: 300.ms)
+      ])),
+    );
+  }
+}
+
+// C. CREATE SCREEN
 class CreateScreen extends StatefulWidget { const CreateScreen({super.key}); @override State<CreateScreen> createState() => _CreateScreenState(); }
 class _CreateScreenState extends State<CreateScreen> { double _stressVal = 5; final _ctrl = TextEditingController(); @override Widget build(BuildContext context) { 
   return Scaffold(
     backgroundColor: Colors.transparent,
-    resizeToAvoidBottomInset: false, // Manuální kontrola
+    resizeToAvoidBottomInset: false, 
     body: SizedBox(
       height: MediaQuery.of(context).size.height,
       child: Stack(
@@ -316,11 +351,7 @@ class _CreateScreenState extends State<CreateScreen> { double _stressVal = 5; fi
           Positioned.fill(
             child: SingleChildScrollView(
               physics: const ClampingScrollPhysics(),
-              padding: EdgeInsets.only(
-                left: 25, right: 25, top: 100,
-                // Padding se mění podle klávesnice
-                bottom: MediaQuery.of(context).viewInsets.bottom + 50
-              ),
+              padding: EdgeInsets.only(left: 25, right: 25, top: 100, bottom: MediaQuery.of(context).viewInsets.bottom + 50),
               child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.edit_note, size: 50, color: Colors.white54), const SizedBox(height: 20), 
                   Text("Vyslat Signál", style: GoogleFonts.cinzel(fontSize: 30, color: Colors.white)), const SizedBox(height: 40), 
@@ -375,7 +406,7 @@ class TrendChartPainter extends CustomPainter {
   @override bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// E. CHARITY SCREEN (S OPRAVENÝM TLAČÍTKEM)
+// E. CHARITY SCREEN (S CHARITY BUTTON)
 class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [const SizedBox(height: 20), Text("Dopad", style: GoogleFonts.cinzel(fontSize: 28)), const SizedBox(height: 30), 
         Container(padding: const EdgeInsets.all(25), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF00D2FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: const Color(0xFF00D2FF).withValues(alpha: 0.4), blurRadius: 20)]), child: Column(children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Tvůj generovaný dopad", style: TextStyle(color: Colors.white70)), Text("${state.totalImpactMoney.toInt()} Kč", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))]), const Icon(Icons.volunteer_activism, size: 40, color: Colors.white)]),
@@ -384,7 +415,7 @@ class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); 
         const SizedBox(height: 30), ...state.charityProjects.map((p) => Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(p.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), 
             
-            // --- CHARITY BUTTON (Zde to chybělo) ---
+            // --- CHARITY BUTTON ---
             CharityButton(color: p.color, onTap: () => state.allocateCharity(p.title))
             
             ]),

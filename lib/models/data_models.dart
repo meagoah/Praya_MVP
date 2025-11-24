@@ -43,14 +43,16 @@ class CharityProject {
       this.title, this.description, this.progress, this.raised, this.color);
 }
 
+// ZDE BYLA ZMĚNA:
 class LevelInfo {
   final String title;
-  final String description;
-  final String perk;
-  LevelInfo(this.title, this.description, this.perk);
+  final String subtitle; // Krátký popis (Hint)
+  final String detailedDescription; // Dlouhý popis (Lore)
+  final String perk; // Odměna
+  
+  LevelInfo(this.title, this.subtitle, this.detailedDescription, this.perk);
 }
 
-// --- TOTO ZDE CHYBĚLO ---
 class AppNotification {
   final String title;
   final String subtitle;
