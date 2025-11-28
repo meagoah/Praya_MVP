@@ -11,7 +11,7 @@ import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
 import '../models/data_models.dart';
 import '../widgets/energy_button.dart';
-import '../widgets/charity_button.dart';
+import '../widgets/charity_button.dart'; // Tento soubor už máš, teď ho konečně použijeme!
 
 // --- 1. ROOT & ONBOARDING ---
 
@@ -131,10 +131,10 @@ class MainLayout extends StatelessWidget {
           const LivingBackground(),
           SafeArea(child: IndexedStack(index: state.navIndex, children: pages)),
           
-          if (MediaQuery.of(context).viewInsets.bottom == 0)
+          // Zobrazit Dock a Auru jen když není klávesnice (aby nezacláněly)
+          if (MediaQuery.of(context).viewInsets.bottom == 0) ...[
             Align(alignment: Alignment.bottomCenter, child: _buildAdvancedDock(context, state)),
-          
-          if (MediaQuery.of(context).viewInsets.bottom == 0)
+            
             Positioned(
               bottom: 120, right: 20,
               child: GestureDetector(
@@ -151,6 +151,7 @@ class MainLayout extends StatelessWidget {
                  .boxShadow(duration: 4000.ms, curve: Curves.easeInOutSine, begin: BoxShadow(color: state.moodColor.withValues(alpha: 0.0), blurRadius: 0, spreadRadius: 0), end: BoxShadow(color: state.moodColor.withValues(alpha: 0.6), blurRadius: 30, spreadRadius: 5)),
               ),
             )
+          ]
         ],
       ),
     );
@@ -233,11 +234,7 @@ class HomeFeedScreen extends StatelessWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor.withValues(alpha: 1.0) : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); }),
           IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))),
-          EnergyButton(
-            color: state.moodColor,
-            isCompleted: item.isLiked,
-            onComplete: () => state.dischargePrayer(item.id),
-          )
+          EnergyButton(color: state.moodColor, isCompleted: item.isLiked, onComplete: () => state.dischargePrayer(item.id))
         ])
       ])),
     );
@@ -279,19 +276,11 @@ class JourneyScreen extends StatelessWidget {
         GlassPanel(glow: true, child: Column(children: [
           Text("${state.nickname} • Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)),
           Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)),
-          const SizedBox(height: 10), 
-          // ZDE BYLA CHYBA: description -> subtitle
-          Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
-          const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Bonus: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))
+          const SizedBox(height: 10), Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
+          const SizedBox(height: 15), Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(8)), child: Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.auto_awesome, size: 12, color: Colors.amber), const SizedBox(width: 5), Text("Odemčeno: ${currentLvl.perk}", style: const TextStyle(fontSize: 10, color: Colors.amber))]))
         ])),
         const SizedBox(height: 30), Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))), const SizedBox(height: 20),
-        ...state.milestones.map((milestone) { 
-          var data = state.getLevelData(milestone); 
-          bool unlocked = state.level >= milestone; 
-          bool isCurrent = state.level == milestone; 
-          // Předáváme správně detailedDescription do description
-          return Column(children: [_ExpandableNode(lvl: milestone, title: data.title, subtitle: data.subtitle, description: data.detailedDescription, perk: data.perk, unlocked: unlocked, isCurrent: isCurrent, color: state.moodColor), if (milestone != 1) _buildLine(active: unlocked)]); 
-        }), const SizedBox(height: 100)
+        ...state.milestones.map((milestone) { var data = state.getLevelData(milestone); bool unlocked = state.level >= milestone; bool isCurrent = state.level == milestone; return Column(children: [_ExpandableNode(lvl: milestone, title: data.title, subtitle: data.subtitle, description: data.detailedDescription, perk: data.perk, unlocked: unlocked, isCurrent: isCurrent, color: state.moodColor), if (milestone != 1) _buildLine(active: unlocked)]); }), const SizedBox(height: 100)
       ] else ...[
         if (state.savedPosts.isEmpty) const Padding(padding: EdgeInsets.only(top: 50), child: Text("Prázdný deník.", style: TextStyle(color: Colors.white38))),
         ...state.savedPosts.map((item) => Container(margin: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -308,37 +297,23 @@ class JourneyScreen extends StatelessWidget {
   void _showEditProfileDialog(BuildContext context, AppState state) { TextEditingController nameCtrl = TextEditingController(text: state.nickname); FaithType tempFaith = state.faith; showDialog(context: context, builder: (ctx) => StatefulBuilder(builder: (context, setState) { return AlertDialog(backgroundColor: const Color(0xFF101015), title: const Text("Upravit", style: TextStyle(color: Colors.white)), content: Column(mainAxisSize: MainAxisSize.min, children: [TextField(controller: nameCtrl, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: "Jméno", labelStyle: TextStyle(color: Colors.white54))), const SizedBox(height: 20), Wrap(spacing: 8, children: FaithType.values.map((f) { bool selected = tempFaith == f; return ChoiceChip(label: Text(f.toString().split('.').last.toUpperCase()), selected: selected, selectedColor: Colors.white, backgroundColor: Colors.black26, onSelected: (v) => setState(() => tempFaith = f)); }).toList())]), actions: [TextButton(onPressed: () { context.read<AppState>().updateProfile(nameCtrl.text, tempFaith); Navigator.pop(ctx); }, child: const Text("Uložit"))]); })); }
 }
 
-// --- ROZBALOVACÍ UZEL (PRIVÁTNÍ WIDGET) ---
+// --- EXPANDABLE NODE (PRIVÁTNÍ) ---
 class _ExpandableNode extends StatefulWidget {
-  final int lvl;
-  final String title;
-  final String subtitle;
-  final String description;
-  final String perk;
-  final bool unlocked;
-  final bool isCurrent;
-  final Color color;
-
+  final int lvl; final String title; final String subtitle; final String description; final String perk; final bool unlocked; final bool isCurrent; final Color color;
   const _ExpandableNode({required this.lvl, required this.title, required this.subtitle, required this.description, required this.perk, required this.unlocked, required this.isCurrent, required this.color});
-  @override
-  State<_ExpandableNode> createState() => _ExpandableNodeState();
+  @override State<_ExpandableNode> createState() => _ExpandableNodeState();
 }
-
 class _ExpandableNodeState extends State<_ExpandableNode> {
   bool isExpanded = false;
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () { setState(() => isExpanded = !isExpanded); HapticFeedback.lightImpact(); },
-      child: AnimatedContainer(duration: 300.ms, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: isExpanded ? Colors.white.withValues(alpha: 0.08) : (widget.unlocked ? Colors.white.withValues(alpha: 0.03) : Colors.transparent), borderRadius: BorderRadius.circular(20), border: Border.all(color: widget.isCurrent ? widget.color : (widget.unlocked ? Colors.white24 : Colors.white10)), boxShadow: widget.isCurrent ? [BoxShadow(color: widget.color.withValues(alpha: 0.2), blurRadius: 15)] : []), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+  @override Widget build(BuildContext context) {
+    return GestureDetector(onTap: () { setState(() => isExpanded = !isExpanded); HapticFeedback.lightImpact(); }, child: AnimatedContainer(duration: 300.ms, padding: const EdgeInsets.all(15), decoration: BoxDecoration(color: isExpanded ? Colors.white.withValues(alpha: 0.08) : (widget.unlocked ? Colors.white.withValues(alpha: 0.03) : Colors.transparent), borderRadius: BorderRadius.circular(20), border: Border.all(color: widget.isCurrent ? widget.color : (widget.unlocked ? Colors.white24 : Colors.white10)), boxShadow: widget.isCurrent ? [BoxShadow(color: widget.color.withValues(alpha: 0.2), blurRadius: 15)] : []), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [Container(width: 40, height: 40, decoration: BoxDecoration(color: widget.unlocked ? widget.color : Colors.white10, shape: BoxShape.circle), child: Icon(widget.unlocked ? (widget.isCurrent ? Icons.place : Icons.check) : Icons.lock, color: widget.unlocked ? Colors.white : Colors.white24, size: 20)), const SizedBox(width: 15), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(widget.title, style: TextStyle(color: widget.unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)), Text("Lvl ${widget.lvl} • ${widget.subtitle}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 10))])), Icon(isExpanded ? Icons.expand_less : Icons.expand_more, color: Colors.white24, size: 16)]),
           AnimatedCrossFade(firstChild: const SizedBox.shrink(), secondChild: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const SizedBox(height: 15), const Divider(color: Colors.white10), const SizedBox(height: 10), Text(widget.description, style: const TextStyle(color: Colors.white70, height: 1.4, fontSize: 13)), const SizedBox(height: 15), Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.black26, borderRadius: BorderRadius.circular(10)), child: Row(children: [Icon(Icons.auto_awesome, size: 14, color: widget.color), const SizedBox(width: 10), Expanded(child: Text("Odměna: ${widget.perk}", style: TextStyle(color: widget.color, fontSize: 12, fontWeight: FontWeight.bold)))]))]), crossFadeState: isExpanded ? CrossFadeState.showSecond : CrossFadeState.showFirst, duration: 300.ms)
-      ])),
-    );
+      ])));
   }
 }
 
-// C. CREATE SCREEN
+// C. CREATE SCREEN (FIXED KEYBOARD PADDING)
 class CreateScreen extends StatefulWidget { const CreateScreen({super.key}); @override State<CreateScreen> createState() => _CreateScreenState(); }
 class _CreateScreenState extends State<CreateScreen> { double _stressVal = 5; final _ctrl = TextEditingController(); @override Widget build(BuildContext context) { 
   return Scaffold(
@@ -406,7 +381,7 @@ class TrendChartPainter extends CustomPainter {
   @override bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// E. CHARITY SCREEN (S CHARITY BUTTON)
+// E. CHARITY SCREEN (S OPRAVENÝM TLAČÍTKEM)
 class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); @override Widget build(BuildContext context) { var state = context.watch<AppState>(); return SingleChildScrollView(padding: const EdgeInsets.all(20), child: Column(children: [const SizedBox(height: 20), Text("Dopad", style: GoogleFonts.cinzel(fontSize: 28)), const SizedBox(height: 30), 
         Container(padding: const EdgeInsets.all(25), decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xFF6C63FF), Color(0xFF00D2FF)]), borderRadius: BorderRadius.circular(25), boxShadow: [BoxShadow(color: const Color(0xFF00D2FF).withValues(alpha: 0.4), blurRadius: 20)]), child: Column(children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Column(crossAxisAlignment: CrossAxisAlignment.start, children: [const Text("Tvůj generovaný dopad", style: TextStyle(color: Colors.white70)), Text("${state.totalImpactMoney.toInt()} Kč", style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold))]), const Icon(Icons.volunteer_activism, size: 40, color: Colors.white)]),
@@ -415,8 +390,9 @@ class CharityScreen extends StatelessWidget { const CharityScreen({super.key}); 
         const SizedBox(height: 30), ...state.charityProjects.map((p) => Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(p.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)), 
             
-            // --- CHARITY BUTTON ---
+            // --- ZDE JE TO TLAČÍTKO ---
             CharityButton(color: p.color, onTap: () => state.allocateCharity(p.title))
+            // -------------------------
             
             ]),
             const SizedBox(height: 5), Text(p.description, style: const TextStyle(color: Colors.white54, fontSize: 12)), const SizedBox(height: 15), LinearProgressIndicator(value: p.progress, backgroundColor: Colors.white10, color: p.color, minHeight: 8, borderRadius: BorderRadius.circular(5)), const SizedBox(height: 8), Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${(p.progress * 100).toInt()}%", style: TextStyle(color: p.color, fontWeight: FontWeight.bold)), Text(p.raised, style: const TextStyle(color: Colors.white38, fontSize: 12))])])))), const SizedBox(height: 100)]).animate().slideX()); } }
@@ -471,6 +447,7 @@ class _AuraModalState extends State<AuraModal> {
               child: Row(children: [
                 Expanded(child: Container(decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(25)), child: TextField(controller: _controller, textInputAction: TextInputAction.send, onSubmitted: (_) => _sendMessage(), style: const TextStyle(color: Colors.white), cursorColor: state.moodColor, maxLines: 4, minLines: 1, decoration: InputDecoration(hintText: "Napiš zprávu...", hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)), border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12))))),
                 const SizedBox(width: 10),
+                // BAREVNÉ TLAČÍTKO (JISTOTA KLIKU)
                 GestureDetector(onTap: _sendMessage, child: Container(width: 48, height: 48, decoration: BoxDecoration(shape: BoxShape.circle, color: state.moodColor, boxShadow: [BoxShadow(color: state.moodColor.withValues(alpha: 0.5), blurRadius: 10)]), child: const Icon(Icons.arrow_upward, color: Colors.black, size: 24)))
               ])
             )
