@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // <--- TENTO IMPORT CHYBĚL PRO HAPTICFEEDBACK
+import 'package:flutter/services.dart'; // Pro HapticFeedback
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui'; 
+import 'dart:ui'; // Pro ImageFilter
 
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
@@ -18,10 +18,11 @@ class HomeFeedScreen extends StatefulWidget {
 }
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
+  // Tady je ta magie: Defaultně je to zavřené (false)
   bool _isDashboardOpen = false;
 
   void _toggleDashboard() {
-    HapticFeedback.selectionClick(); // Teď už to bude fungovat
+    HapticFeedback.selectionClick();
     setState(() => _isDashboardOpen = !_isDashboardOpen);
   }
 
@@ -36,7 +37,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     var state = context.watch<AppState>();
     
     return GestureDetector(
-      onTap: _closeDashboard,
+      onTap: _closeDashboard, // Kliknutí kamkoliv jinam zavře menu
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -49,7 +50,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 
                 Row(
                   children: [
-                    // NOTIFICATIONS
+                    // 1. NOTIFIKACE (ZVONEČEK)
                     GestureDetector(
                       onTap: () => _showNotifications(context, state),
                       child: Stack(
@@ -61,22 +62,24 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         ]
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    // DASHBOARD TOGGLE
+                    
+                    const SizedBox(width: 15),
+
+                    // 2. DASHBOARD TOGGLE (TLAČÍTKO PRO ROZBALENÍ)
                     GestureDetector(
                       onTap: _toggleDashboard,
                       child: AnimatedContainer(
                         duration: 300.ms,
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: _isDashboardOpen ? state.moodColor.withValues(alpha: 0.2) : Colors.transparent,
+                          color: _isDashboardOpen ? state.moodColor.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                           shape: BoxShape.circle,
                           border: Border.all(color: _isDashboardOpen ? state.moodColor : Colors.white10)
                         ),
                         child: Icon(
-                          _isDashboardOpen ? Icons.dashboard : Icons.dashboard_customize, 
-                          color: _isDashboardOpen ? state.moodColor : Colors.white54, 
-                          size: 24
+                          _isDashboardOpen ? Icons.close : Icons.dashboard_customize, // Ikona se mění
+                          color: _isDashboardOpen ? state.moodColor : Colors.white70, 
+                          size: 20
                         ),
                       ),
                     ),
@@ -85,13 +88,16 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               ]
             ), 
             
-            const SizedBox(height: 20), 
+            const SizedBox(height: 10), 
 
-            // --- EXPANDABLE DASHBOARD ---
+            // --- EXPANDABLE DASHBOARD AREA ---
+            // Toto je ta část, která se skrývá/odkrývá
             AnimatedCrossFade(
-              firstChild: const SizedBox(width: double.infinity),
+              firstChild: const SizedBox(width: double.infinity), // Když je zavřeno = nic tam není
               secondChild: Column(
                 children: [
+                  const SizedBox(height: 20),
+                  // SOUL DASHBOARD (LEVELY)
                   GlassPanel(
                     glow: true, 
                     onTap: () => state.setIndex(1), 
@@ -104,6 +110,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     ])
                   ),
                   const SizedBox(height: 15),
+                  // BIOFEEDBACK
                   GlassPanel(
                     child: Column(children: [
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Biofeedback", style: TextStyle(fontSize: 12, color: Colors.white54)), Icon(Icons.circle, size: 8, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale()]), 
@@ -111,9 +118,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                       SliderTheme(data: SliderThemeData(trackHeight: 6, thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10), activeTrackColor: state.moodColor, thumbColor: Colors.white), child: Slider(value: state.currentStress, onChanged: (v) => state.updateStress(v)))
                     ])
                   ),
-                  const SizedBox(height: 25),
+                  const SizedBox(height: 20),
                   const Divider(color: Colors.white10),
-                  const SizedBox(height: 10),
                 ],
               ),
               crossFadeState: _isDashboardOpen ? CrossFadeState.showSecond : CrossFadeState.showFirst,
@@ -121,19 +127,15 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
               sizeCurve: Curves.easeInOutQuart,
             ),
 
-            // --- FEED ---
-            GestureDetector(
-              onTap: _closeDashboard,
-              behavior: HitTestBehavior.translucent,
-              child: Column(
-                children: [
-                   if (state.visibleFeed.isEmpty) 
-                     const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), 
-                   ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)),
-                   const SizedBox(height: 100)
-                ],
-              ),
-            )
+            const SizedBox(height: 10),
+
+            // --- FEED LIST ---
+            if (state.visibleFeed.isEmpty) 
+               const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), 
+             
+            ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)),
+             
+            const SizedBox(height: 100)
           ]
         ).animate().fadeIn(),
       ),

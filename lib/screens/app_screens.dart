@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:ui'; // Pro ImageFilter
-import 'dart:math';
+//import 'dart:math';
 
 // Importy našich modulů
 import '../providers/app_state.dart';
