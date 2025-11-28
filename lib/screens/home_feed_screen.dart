@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Pro HapticFeedback
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:ui'; // Pro ImageFilter
+import 'dart:ui';
 
 import '../providers/app_state.dart';
 import '../widgets/base_widgets.dart';
@@ -18,8 +18,7 @@ class HomeFeedScreen extends StatefulWidget {
 }
 
 class _HomeFeedScreenState extends State<HomeFeedScreen> {
-  // Tady je ta magie: Defaultně je to zavřené (false)
-  bool _isDashboardOpen = false;
+  bool _isDashboardOpen = false; // Defaultně zavřeno
 
   void _toggleDashboard() {
     HapticFeedback.selectionClick();
@@ -37,12 +36,12 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
     var state = context.watch<AppState>();
     
     return GestureDetector(
-      onTap: _closeDashboard, // Kliknutí kamkoliv jinam zavře menu
+      onTap: _closeDashboard, // Kliknutí vedle zavře dashboard
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           children: [
-            // --- HEADER ---
+            // HEADER
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween, 
               children: [
@@ -50,7 +49,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                 
                 Row(
                   children: [
-                    // 1. NOTIFIKACE (ZVONEČEK)
+                    // Zvoneček
                     GestureDetector(
                       onTap: () => _showNotifications(context, state),
                       child: Stack(
@@ -62,10 +61,8 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                         ]
                       ),
                     ),
-                    
                     const SizedBox(width: 15),
-
-                    // 2. DASHBOARD TOGGLE (TLAČÍTKO PRO ROZBALENÍ)
+                    // DASHBOARD TOGGLE (IKONA DASHBOARDU)
                     GestureDetector(
                       onTap: _toggleDashboard,
                       child: AnimatedContainer(
@@ -77,7 +74,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                           border: Border.all(color: _isDashboardOpen ? state.moodColor : Colors.white10)
                         ),
                         child: Icon(
-                          _isDashboardOpen ? Icons.close : Icons.dashboard_customize, // Ikona se mění
+                          _isDashboardOpen ? Icons.close : Icons.dashboard_customize, 
                           color: _isDashboardOpen ? state.moodColor : Colors.white70, 
                           size: 20
                         ),
@@ -90,14 +87,13 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
             
             const SizedBox(height: 10), 
 
-            // --- EXPANDABLE DASHBOARD AREA ---
-            // Toto je ta část, která se skrývá/odkrývá
+            // EXPANDABLE DASHBOARD AREA
             AnimatedCrossFade(
-              firstChild: const SizedBox(width: double.infinity), // Když je zavřeno = nic tam není
+              firstChild: const SizedBox(width: double.infinity),
               secondChild: Column(
                 children: [
                   const SizedBox(height: 20),
-                  // SOUL DASHBOARD (LEVELY)
+                  // Soul Dashboard
                   GlassPanel(
                     glow: true, 
                     onTap: () => state.setIndex(1), 
@@ -110,7 +106,7 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
                     ])
                   ),
                   const SizedBox(height: 15),
-                  // BIOFEEDBACK
+                  // Biofeedback
                   GlassPanel(
                     child: Column(children: [
                       Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text("Biofeedback", style: TextStyle(fontSize: 12, color: Colors.white54)), Icon(Icons.circle, size: 8, color: state.moodColor).animate(onPlay: (c)=>c.repeat(reverse: true)).scale()]), 
@@ -129,53 +125,30 @@ class _HomeFeedScreenState extends State<HomeFeedScreen> {
 
             const SizedBox(height: 10),
 
-            // --- FEED LIST ---
+            // FEED
             if (state.visibleFeed.isEmpty) 
                const Padding(padding: EdgeInsets.all(20), child: Text("Řeka je klidná...", style: TextStyle(color: Colors.white38))), 
              
             ...state.visibleFeed.map((item) => _buildEnhancedCard(context, item, state)),
              
             const SizedBox(height: 100)
-          ]
-        ).animate().fadeIn(),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEnhancedCard(BuildContext context, FeedItem item, AppState state) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15),
-      child: GlassPanel(
-        glow: item.isLiked,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start, 
-          children: [
-            Row(children: [
-              CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), 
-              const SizedBox(width: 10), 
-              Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), 
-              const SizedBox(width: 5), 
-              Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), 
-              const Spacer(), 
-              if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), 
-              const SizedBox(width: 10), 
-              GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))
-            ]), 
-            const SizedBox(height: 15), 
-            Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))), 
-            const SizedBox(height: 15),
-            AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), 
-            const SizedBox(height: 10), 
-            GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), 
-            const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-              IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor.withValues(alpha: 1.0) : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); }),
-              IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))),
-              EnergyButton(color: state.moodColor, isCompleted: item.isLiked, onComplete: () => state.dischargePrayer(item.id))
-            ])
-          ]
-        ),
-      ),
+    return Padding(padding: const EdgeInsets.only(bottom: 15), child: GlassPanel(glow: item.isLiked, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [CircleAvatar(radius: 14, backgroundColor: Colors.white10, child: Text(item.author[0], style: const TextStyle(color: Colors.white, fontSize: 12))), const SizedBox(width: 10), Text(item.author, style: const TextStyle(fontWeight: FontWeight.bold)), const SizedBox(width: 5), Text("• ${item.country}", style: const TextStyle(color: Colors.white38, fontSize: 12)), const Spacer(), if (item.isLiked) const Icon(Icons.check, color: Colors.white, size: 16), const SizedBox(width: 10), GestureDetector(onTap: () => _showReportSheet(context, state, item.id), child: const Icon(Icons.more_horiz, size: 20, color: Colors.white38))]), const SizedBox(height: 15), 
+        Center(child: Opacity(opacity: 0.7, child: SoulSignatureWidget(text: item.originalText, seedColor: item.artSeedColor))), const SizedBox(height: 15),
+        AnimatedSwitcher(duration: 300.ms, child: Text(item.showTranslation ? item.translatedText : item.originalText, key: ValueKey<bool>(item.showTranslation), style: const TextStyle(fontSize: 16, height: 1.4, color: Colors.white70))), const SizedBox(height: 10), GestureDetector(onTap: () => state.toggleTranslation(item.id), child: Row(children: [Icon(Icons.translate, size: 14, color: state.moodColor), const SizedBox(width: 5), Text(item.showTranslation ? "Zobrazit originál" : "Zobrazit překlad", style: TextStyle(fontSize: 12, color: state.moodColor, fontWeight: FontWeight.bold))])), const SizedBox(height: 20), const Divider(color: Colors.white10), const SizedBox(height: 10),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          IconButton(icon: Icon(item.isSaved ? Icons.bookmark : Icons.bookmark_border, color: item.isSaved ? state.moodColor.withValues(alpha: 1.0) : Colors.white54), onPressed: () { state.toggleSave(item.id); ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(item.isSaved ? "Uloženo do Deníku" : "Odstraněno"))); }),
+          IconButton(icon: const Icon(Icons.share, color: Colors.white54), onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Sdílení...")))),
+          EnergyButton(color: state.moodColor, isCompleted: item.isLiked, onComplete: () => state.dischargePrayer(item.id))
+        ])
+      ])),
     );
   }
 

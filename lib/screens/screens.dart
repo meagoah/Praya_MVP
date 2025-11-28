@@ -1,3 +1,4 @@
+// Tento soubor slouží jako index pro všechny obrazovky
 export 'root_switcher.dart';
 export 'onboarding_screen.dart';
 export 'main_layout.dart';
@@ -7,4 +8,3 @@ export 'create_screen.dart';
 export 'insights_screen.dart';
 export 'charity_screen.dart';
 export 'aura_modal.dart';
-export '../widgets/energy_button.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'providers/app_state.dart';
-import 'screens/app_screens.dart';
+import 'screens/screens.dart'; // <--- TOTO JE TA ZMĚNA (bývalo tam app_screens.dart)
 
 void main() {
   runApp(
@@ -19,7 +19,7 @@ class PrayApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PRAYA v20',
+      title: 'PRAYA v23',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF05050A),
