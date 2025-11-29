@@ -19,7 +19,7 @@ class PrayApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'PRAYA v23',
+      title: 'PRAYA v23 (new)',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF05050A),
