@@ -20,7 +20,7 @@ class _CharityButtonState extends State<CharityButton> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000));
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1200));
     _controller.addListener(() {
       setState(() {
         _updateParticles();
@@ -31,14 +31,15 @@ class _CharityButtonState extends State<CharityButton> with SingleTickerProvider
   void _triggerEffect() {
     HapticFeedback.mediumImpact();
     _particles.clear();
-    // Vytvoříme explozi srdíček
-    for (int i = 0; i < 15; i++) {
+    // Vytvoříme explozi
+    for (int i = 0; i < 20; i++) {
       _particles.add(HeartParticle(
         x: 0, y: 0,
         angle: _rnd.nextDouble() * 2 * pi, // Do všech stran
-        rotation: _rnd.nextDouble() * 0.5 - 0.25, // Náhodná rotace srdíčka
-        speed: 2.0 + _rnd.nextDouble() * 3.0,
-        size: 10.0 + _rnd.nextDouble() * 8.0, // Větší, kulatější srdce
+        speed: 2.0 + _rnd.nextDouble() * 4.0, // Rychlost výbuchu
+        rotation: _rnd.nextDouble() * 2 * pi, // Počáteční natočení
+        rotSpeed: (_rnd.nextDouble() - 0.5) * 0.2, // Rychlost rotace
+        size: 10.0 + _rnd.nextDouble() * 8.0, // Velikost
         color: widget.color,
         life: 1.0
       ));
@@ -63,11 +64,19 @@ class _CharityButtonState extends State<CharityButton> with SingleTickerProvider
 
   void _updateParticles() {
     for (var p in _particles) {
+      // Pohyb
       p.x += cos(p.angle) * p.speed;
-      p.y += sin(p.angle) * p.speed; 
-      p.y -= 1.0; // Gravitace nahoru (vznášení)
-      p.life -= 0.02; 
-      p.speed *= 0.95; 
+      p.y += sin(p.angle) * p.speed;
+      
+      // Gravitace (aby padaly dolů jako konfety)
+      p.y += 2.0; 
+      
+      // Rotace
+      p.rotation += p.rotSpeed;
+      
+      // Zpomalení a mizení
+      p.life -= 0.02;
+      p.speed *= 0.9; 
     }
   }
 
@@ -87,16 +96,23 @@ class _CharityButtonState extends State<CharityButton> with SingleTickerProvider
         children: [
           // Tlačítko
           ScaleTransition(
-            scale: Tween<double>(begin: 1.0, end: 0.95).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)),
+            scale: Tween<double>(begin: 1.0, end: 0.9).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutBack)),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: widget.color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: widget.color),
-                boxShadow: _controller.isAnimating ? [BoxShadow(color: widget.color.withValues(alpha: 0.5), blurRadius: 15)] : []
+                boxShadow: _controller.isAnimating ? [BoxShadow(color: widget.color.withValues(alpha: 0.6), blurRadius: 20)] : []
               ),
-              child: Text("PODPOŘIT", style: TextStyle(color: widget.color, fontSize: 10, fontWeight: FontWeight.bold)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.favorite, size: 14, color: widget.color),
+                  const SizedBox(width: 6),
+                  Text("PODPOŘIT", style: TextStyle(color: widget.color, fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
+              ),
             ),
           ),
           
@@ -114,9 +130,13 @@ class _CharityButtonState extends State<CharityButton> with SingleTickerProvider
 }
 
 class HeartParticle {
-  double x, y, angle, rotation, speed, size, life;
+  double x, y, angle, speed, size, life, rotation, rotSpeed;
   Color color;
-  HeartParticle({required this.x, required this.y, required this.angle, required this.rotation, required this.speed, required this.size, required this.color, this.life = 1.0});
+  HeartParticle({
+    required this.x, required this.y, required this.angle, required this.speed, 
+    required this.size, required this.color, required this.rotation, required this.rotSpeed,
+    this.life = 1.0
+  });
 }
 
 class HeartsPainter extends CustomPainter {
@@ -130,33 +150,29 @@ class HeartsPainter extends CustomPainter {
       if (p.life <= 0) continue;
       
       canvas.save();
-      // Posuneme se na pozici částice
       canvas.translate(center.dx + p.x, center.dy + p.y);
-      // Otočíme ji (aby to vypadalo živě)
-      canvas.rotate(p.rotation * (1.0 - p.life) * 5); 
+      canvas.rotate(p.rotation); // Rotace srdíčka
       
       final paint = Paint()..color = p.color.withValues(alpha: p.life);
-      _drawRoundHeart(canvas, p.size, paint);
+      _drawPerfectHeart(canvas, p.size, paint);
       
       canvas.restore();
     }
   }
 
-  // Vykreslí HEZKÉ KULATÉ SRDCE
-  void _drawRoundHeart(Canvas canvas, double w, Paint paint) {
+  // Kreslí hezké boubelaté srdce
+  void _drawPerfectHeart(Canvas canvas, double scale, Paint paint) {
     Path path = Path();
-    // Použijeme bezierovy křivky pro kulatý "emoji" tvar
-    double width = w;
-    double height = w;
-    
-    path.moveTo(0, height * 0.25);
-    path.cubicTo(0, -height * 0.2, width * 0.5, -height * 0.2, width * 0.5, height * 0.25);
-    path.cubicTo(width * 0.5, -height * 0.2, width, -height * 0.2, width, height * 0.25);
-    path.cubicTo(width, height * 0.6, width * 0.5, height * 0.9, 0, height * 1.2); // Špička dole
-    path.cubicTo(-width * 0.5, height * 0.9, -width, height * 0.6, -width, height * 0.25);
-    
-    // Posuneme, aby bylo vycentrované
-    canvas.translate(0, -height * 0.5);
+    // Šířka a výška relativně k měřítku
+    double width = scale;
+    double height = scale;
+
+    path.moveTo(0, height / 4);
+    path.cubicTo(0, -height / 2, width / 1.4, -height / 2, width / 1.4, height / 4); // Pravý oblouk
+    path.cubicTo(width / 1.4, height / 1.8, 0, height * 1.2, 0, height * 1.2); // Pravá špička dolů
+    path.cubicTo(0, height * 1.2, -width / 1.4, height / 1.8, -width / 1.4, height / 4); // Levá špička nahoru
+    path.cubicTo(-width / 1.4, -height / 2, 0, -height / 2, 0, height / 4); // Levý oblouk
+
     canvas.drawPath(path, paint);
   }
 

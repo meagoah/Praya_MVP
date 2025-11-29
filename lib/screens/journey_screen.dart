@@ -21,7 +21,7 @@ class JourneyScreen extends StatelessWidget {
         children: [
           const SizedBox(height: 20),
           
-          // HEADER S TLAČÍTKEM PRO ÚPRAVU
+          // HEADER
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -36,7 +36,7 @@ class JourneyScreen extends StatelessWidget {
           
           const SizedBox(height: 30),
 
-          // PŘEPÍNAČ (MAPA / DENÍK)
+          // PŘEPÍNAČ
           Container(
             padding: const EdgeInsets.all(5),
             decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(20)),
@@ -72,11 +72,8 @@ class JourneyScreen extends StatelessWidget {
           
           const SizedBox(height: 30),
 
-          // --- LOGIKA ZOBRAZENÍ ---
           if (!state.showJournal) ...[
-            // 1. VIEW: MAPA A STROM
-            
-            // Vizuální Strom
+            // --- MAP VIEW ---
             SizedBox(
               height: 300,
               child: Stack(
@@ -97,7 +94,7 @@ class JourneyScreen extends StatelessWidget {
               )
             ),
             
-            // Karta aktuálního levelu
+            // Karta aktuálního levelu (S POPISEM)
             GlassPanel(
               glow: true,
               child: Column(
@@ -105,7 +102,8 @@ class JourneyScreen extends StatelessWidget {
                   Text("${state.nickname} • Level ${state.level}", style: GoogleFonts.outfit(color: Colors.white54)),
                   Text(currentLvl.title, style: GoogleFonts.cinzel(fontSize: 24, fontWeight: FontWeight.bold, color: state.moodColor)),
                   const SizedBox(height: 10),
-                  Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
+                  // ZDE JE TEN HLAVNÍ TEXT (LORE)
+                  Text(currentLvl.subtitle, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontStyle: FontStyle.italic, height: 1.4)),
                   const SizedBox(height: 15),
                   Container(
                     padding: const EdgeInsets.all(8),
@@ -127,7 +125,7 @@ class JourneyScreen extends StatelessWidget {
             Align(alignment: Alignment.centerLeft, child: Text("Hvězdná Mapa", style: GoogleFonts.cinzel(fontSize: 18))),
             const SizedBox(height: 20),
             
-            // Generování mapy milníků
+            // Mapa s popisky
             ...state.milestones.map((milestone) {
               var data = state.getLevelData(milestone);
               bool unlocked = state.level >= milestone;
@@ -137,14 +135,14 @@ class JourneyScreen extends StatelessWidget {
                   _ExpandableNode(
                     lvl: milestone,
                     title: data.title,
-                    subtitle: data.subtitle,
-                    description: data.detailedDescription,
+                    subtitle: data.subtitle, // Zde předáváme ten "Hint" text
+                    description: data.detailedDescription, // A tady ten dlouhý popis
                     perk: data.perk,
                     unlocked: unlocked,
                     isCurrent: isCurrent,
                     color: state.moodColor
                   ),
-                  if (milestone != 1) // Čára pod bodem (kromě posledního)
+                  if (milestone != 1)
                     Container(
                       margin: const EdgeInsets.symmetric(vertical: 2),
                       width: 2, height: 20,
@@ -157,7 +155,7 @@ class JourneyScreen extends StatelessWidget {
             const SizedBox(height: 100)
             
           ] else ...[
-            // 2. VIEW: DENÍK VDĚČNOSTI
+            // --- JOURNAL VIEW ---
             if (state.savedPosts.isEmpty)
               const Padding(
                 padding: EdgeInsets.only(top: 50),
@@ -199,8 +197,6 @@ class JourneyScreen extends StatelessWidget {
       ).animate().scale(),
     );
   }
-
-  // --- DIALOGY ---
 
   void _addNoteDialog(BuildContext context, AppState state, String id) {
     TextEditingController ctrl = TextEditingController();
@@ -285,11 +281,11 @@ class JourneyScreen extends StatelessWidget {
   }
 }
 
-// --- PRIVÁTNÍ WIDGET: ROZBALOVACÍ UZEL MAPY ---
+// --- EXPANDABLE NODE S TEXTEM ---
 class _ExpandableNode extends StatefulWidget {
   final int lvl;
   final String title;
-  final String subtitle;
+  final String subtitle; // TOTO JE TEN TEXT, CO CHCEŠ VIDĚT
   final String description;
   final String perk;
   final bool unlocked;
@@ -324,7 +320,7 @@ class _ExpandableNodeState extends State<_ExpandableNode> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // HLAVIČKA (Vždy viditelná)
+            // HLAVIČKA
             Row(
               children: [
                 Container(
@@ -338,7 +334,13 @@ class _ExpandableNodeState extends State<_ExpandableNode> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(widget.title, style: TextStyle(color: widget.unlocked ? Colors.white : Colors.white38, fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text("Lvl ${widget.lvl} • ${widget.subtitle}", maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                      
+                      // --- ZDE JE TEN VRÁCENÝ TEXT ---
+                      if (widget.unlocked || widget.isCurrent)
+                        Text(widget.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.white54, fontSize: 11, height: 1.2))
+                      else 
+                         Text("Lvl ${widget.lvl} - Zamčeno", style: const TextStyle(color: Colors.white24, fontSize: 10)),
+                      // -------------------------------
                     ],
                   ),
                 ),
@@ -355,6 +357,7 @@ class _ExpandableNodeState extends State<_ExpandableNode> {
                   const SizedBox(height: 15),
                   const Divider(color: Colors.white10),
                   const SizedBox(height: 10),
+                  // Tady je detailní popis (Lore)
                   Text(widget.description, style: const TextStyle(color: Colors.white70, height: 1.4, fontSize: 13)),
                   const SizedBox(height: 15),
                   Container(
