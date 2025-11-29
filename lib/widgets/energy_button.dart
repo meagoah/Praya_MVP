@@ -30,7 +30,8 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 1500));
+    // ZRYCHLENO: 800ms (bylo 1500ms). Rychlejší interakce.
+    _controller = AnimationController(vsync: this, duration: const Duration(milliseconds: 800));
     _pulseController = AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))..repeat(reverse: true);
     
     _controller.addStatusListener((status) {
@@ -43,7 +44,8 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
   }
 
   void _spawnParticles() {
-    _particleTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
+    // Častější spawn částic (30ms místo 50ms), aby to vypadalo hustě i při krátkém čase
+    _particleTimer = Timer.periodic(const Duration(milliseconds: 30), (timer) {
       if (!_isPressed) return;
       setState(() {
         double angle = _rnd.nextDouble() * 2 * pi;
@@ -52,9 +54,10 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
           x: cos(angle) * distance,
           y: sin(angle) * distance,
           angle: angle,
-          speed: 2.0 + _rnd.nextDouble() * 2,
+          // Rychlejší pohyb částic, aby stihly doletět do středu
+          speed: 3.0 + _rnd.nextDouble() * 3, 
           size: 2.0 + _rnd.nextDouble() * 3,
-          color: widget.color.withValues(alpha: 0.6 + _rnd.nextDouble() * 0.4) // Opraveno
+          color: widget.color.withValues(alpha: 0.6 + _rnd.nextDouble() * 0.4)
         ));
       });
     });
@@ -123,18 +126,18 @@ class _EnergyButtonState extends State<EnergyButton> with TickerProviderStateMix
                   ? LinearGradient(colors: [widget.color, Colors.purple]) 
                   : LinearGradient(
                       colors: [
-                        Colors.white.withValues(alpha: 0.1), // Opraveno
-                        Colors.white.withValues(alpha: 0.05 + (progress * 0.2)) // Opraveno
+                        Colors.white.withValues(alpha: 0.1), 
+                        Colors.white.withValues(alpha: 0.05 + (progress * 0.2)) 
                       ],
                     ),
                 border: Border.all(
-                  color: widget.isCompleted ? Colors.transparent : widget.color.withValues(alpha: 0.3 + (progress * 0.7)), // Opraveno
+                  color: widget.isCompleted ? Colors.transparent : widget.color.withValues(alpha: 0.3 + (progress * 0.7)), 
                   width: 1 + (progress * 2)
                 ),
                 boxShadow: [
                   if (_isPressed || widget.isCompleted)
                     BoxShadow(
-                      color: widget.color.withValues(alpha: widget.isCompleted ? 0.6 : progress * 0.5), // Opraveno
+                      color: widget.color.withValues(alpha: widget.isCompleted ? 0.6 : progress * 0.5), 
                       blurRadius: widget.isCompleted ? 20 : 10 + (progress * 20),
                       spreadRadius: widget.isCompleted ? 2 : progress * 5
                     )
@@ -173,7 +176,7 @@ class ParticlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     for (var p in particles) {
-      final paint = Paint()..color = p.color.withValues(alpha: p.life.clamp(0.0, 1.0)); // Opraveno
+      final paint = Paint()..color = p.color.withValues(alpha: p.life.clamp(0.0, 1.0)); 
       canvas.drawCircle(center + Offset(p.x, p.y), p.size, paint);
     }
   }
