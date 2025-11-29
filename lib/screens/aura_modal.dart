@@ -134,7 +134,7 @@ class _AuraModalState extends State<AuraModal> {
                       ),
                       const SizedBox(width: 10),
                       
-                      // TLAČÍTKO (PLNÁ BARVA)
+                      // TLAČÍTKO (PLNÁ  BARVA)
                       GestureDetector(
                         onTap: _sendMessage,
                         child: Container(
