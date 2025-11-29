@@ -47,7 +47,7 @@ class AppState extends ChangeNotifier {
   int get unreadNotificationsCount => notifications.where((n) => !n.isRead).length;
   void markNotificationsAsRead() { for (var n in notifications) { n.isRead = true; } notifyListeners(); }
 
-  // --- DENNÍ CITÁTY (TOTO CHYBĚLO A ZPŮSOBOVALO CHYBU) ---
+  // --- DENNÍ CITÁTY ---
   final Map<FaithType, String> _dailyQuotes = {
     FaithType.christian: "Všechno mohu v Kristu, který mi dává sílu. (Filipským 4:13)",
     FaithType.muslim: "Bůh nezatíží duši nad její možnosti. (Korán 2:286)",
@@ -58,15 +58,34 @@ class AppState extends ChangeNotifier {
   
   String get currentQuote => _dailyQuotes[faith] ?? _dailyQuotes[FaithType.universal]!;
 
+  // Funkce pro zeptání se Aury (přidá do chatu)
   void askAuraAboutQuote(String quote) {
-    chatHistory.add("Ty: Zaujal mě tento citát: \"$quote\". Co mi k němu můžeš říct hlubšího?");
+    chatHistory.add("Ty: Zaujal mě tento text: \"$quote\". Co mi k němu můžeš říct?");
     notifyListeners();
     Future.delayed(const Duration(milliseconds: 1000), () {
       chatHistory.add("Aura: To je hluboká myšlenka. Tento text nám připomíná, že naše vnitřní síla často pramení z propojení s něčím větším. Jak to rezonuje s tvou dnešní situací?");
       notifyListeners();
     });
   }
-  // -------------------------------------------------------
+  
+  // --- NOVÁ FUNKCE: ULOŽENÍ CITÁTU DO DENÍKU ---
+  void saveQuoteAsJournalEntry(String quote) {
+    // Vytvoříme "falešný" FeedItem, který reprezentuje uložený citát
+    var newItem = FeedItem(
+      id: "quote_${DateTime.now().millisecondsSinceEpoch}",
+      author: "Moudrost dne",
+      country: "World",
+      originalText: quote,
+      translatedText: quote,
+      showTranslation: true,
+      isSaved: true, // <--- Důležité: Rovnou uloženo
+      artSeedColor: Colors.amber
+    );
+    
+    // Přidáme ho na začátek feedu (nebo jen do paměti, ale pro MVP do feedu, aby byl vidět v deníku)
+    feed.insert(0, newItem);
+    notifyListeners();
+  }
 
   Color get moodColor {
     Color base;
@@ -89,7 +108,6 @@ class AppState extends ChangeNotifier {
   List<int> get milestones => [50, 40, 30, 20, 15, 10, 5, 3, 2, 1];
 
   LevelInfo getLevelData(int targetLevel) {
-    // Zkrácená verze pro úsporu místa (plná verze byla v v23)
     if (targetLevel <= 1) return LevelInfo("Poutník", "Začátek cesty", "Jsi na začátku.", "Feed");
     if (targetLevel <= 5) return LevelInfo("Hledač", "Hledání pravdy", "Hledáš souvislosti.", "Art Gen");
     if (targetLevel <= 10) return LevelInfo("Strážce", "Chráníš světlo", "Jsi oporou.", "Aura Voice");
